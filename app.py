@@ -96,7 +96,6 @@ try:
                 continue
 
             title = job.find_element(By.CLASS_NAME, "base-search-card__title").text
-
             location = job.find_element(By.CLASS_NAME, "job-search-card__location").text
 
             jobs_list.append(
