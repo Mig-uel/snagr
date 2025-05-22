@@ -8,6 +8,10 @@ TELEGRAM_CHAT_ID = os.getenv("TELEGRAM_CHAT_ID")
 
 def send_telegram_message(message="", title="", href="", company=""):
     url = f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/sendMessage"
+
+    if not message and title and href and company:
+        message = f"<b>{title}</b>\n<i>{company}</i>\n<a href='{href}'>Apply Now</a>"
+
     payload = {"chat_id": TELEGRAM_CHAT_ID, "text": message, "parse_mode": "HTML"}
 
     try:
