@@ -52,6 +52,10 @@ for _ in range(3):
 jobs = driver.find_elements(By.CLASS_NAME, "base-card")
 jobs_list = []
 
+# blacklisted companies
+companies = ["Lensa", "Wiraa", "Revature"]
+blacklisted = {c.lower() for c in companies}
+
 try:
     for job in jobs:
         try:
@@ -74,12 +78,17 @@ try:
 
             # Now extract basic job info again (from the original card)
             job_link = job.find_element(By.TAG_NAME, "a").get_attribute("href")
+            company = job.find_element(By.CLASS_NAME, "base-search-card__subtitle").text
+
+            if company.lower() in blacklisted:
+                send_telegram_message(
+                    message=f"🚫 Skipped blacklisted company: {company}"
+                )
+                continue
 
             if not job_exists(job_link):
                 title = job.find_element(By.CLASS_NAME, "base-search-card__title").text
-                company = job.find_element(
-                    By.CLASS_NAME, "base-search-card__subtitle"
-                ).text
+
                 location = job.find_element(
                     By.CLASS_NAME, "job-search-card__location"
                 ).text
@@ -103,7 +112,6 @@ except Exception as e:
     raise
 
 driver.quit()
-
 
 try:
     supabase.table("jobs").insert(jobs_list).execute()
