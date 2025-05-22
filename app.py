@@ -50,9 +50,7 @@ for _ in range(3):
 
 # parse job listings
 jobs = driver.find_elements(By.CLASS_NAME, "base-card")
-
-# job_list = []
-jobs_count = 0
+jobs_list = []
 
 try:
     for job in jobs:
@@ -86,18 +84,16 @@ try:
                     By.CLASS_NAME, "job-search-card__location"
                 ).text
 
-                supabase.table("jobs").insert(
+                jobs_list.append(
                     {
                         "title": title,
                         "company": company,
                         "location": location,
                         "job_link": job_link,
                     }
-                ).execute()
+                )
 
                 send_telegram_message(title=title, company=company, href=job_link)
-
-                jobs_count += 1
 
         except Exception as e:
             print("Skipping a job due to error:", e)
@@ -108,4 +104,9 @@ except Exception as e:
 
 driver.quit()
 
-send_telegram_message(f"✅ Scraper finished. Collected {jobs_count} job(s).")
+
+try:
+    supabase.table("jobs").insert(jobs_list).execute()
+    send_telegram_message(f"✅ Scraper finished. Collected {len(jobs_list)} job(s).")
+except Exception as e:
+    send_telegram_message(f"⚠️ Scraper failed:\n<code>{e}</code>")
