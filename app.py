@@ -85,23 +85,23 @@ for job in jobs:
                 }
             ).execute()
 
-            job_list.append(
-                {
-                    "Title": title,
-                    "Company": company,
-                    "Location": location,
-                    "Job Page Link": job_link,
-                }
-            )
+            # job_list.append(
+            #     {
+            #         "Title": title,
+            #         "Company": company,
+            #         "Location": location,
+            #         "Job Page Link": job_link,
+            #     }
+            # )
 
     except Exception as e:
         print("Skipping a job due to error:", e)
 
 driver.quit()
 
-# Save to DataFrame
-df = pd.DataFrame(job_list)
-print(df.head())
+# # Save to DataFrame
+# df = pd.DataFrame(job_list)
+# print(df.head())
 
-# Optionally save to CSV
-df.to_csv("linkedin_jobs.csv", index=False)
+# # Optionally save to CSV
+# df.to_csv("linkedin_jobs.csv", index=False)
