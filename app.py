@@ -1,17 +1,17 @@
 import os
 import time
-from urllib.parse import urlparse
+from datetime import datetime
 
 from selenium import webdriver
 from selenium.webdriver.chrome.options import Options
 from selenium.webdriver.chrome.service import Service
 from selenium.webdriver.common.by import By
-
-# from selenium.webdriver.support import expected_conditions as EC
-# from selenium.webdriver.support.ui import WebDriverWait
 from supabase import Client, create_client
 from webdriver_manager.chrome import ChromeDriverManager
 
+from utils.blacklisted_companies import blacklisted
+from utils.constants import SOURCE_URL
+from utils.normalize_link import normalize_link
 from utils.telegram_send_message import send_telegram_message
 
 # SUPABASE CONFIG
@@ -20,13 +20,6 @@ key = os.getenv("SUPABASE_KEY")
 
 # SUPABASE: CREATE CLIENT
 supabase: Client = create_client(url, key)
-
-
-# SUPABASE: CHECK + INSERT
-def job_exists(link):
-    result = supabase.table("jobs").select("job_link").eq("job_link", link).execute()
-    return len(result.data) > 0
-
 
 options = Options()
 options.add_argument("--headless")
@@ -37,15 +30,16 @@ driver = webdriver.Chrome(
     service=Service(ChromeDriverManager().install()), options=options
 )
 
-# LinkedIn job search URL
-url = "https://www.linkedin.com/jobs/search/?f_TPR=r3600&keywords=junior%20software%20engineer&location=United%20States&origin=JOB_SEARCH_PAGE_JOB_FILTER"
 
 # open the page
-driver.get(url)
+driver.get(SOURCE_URL)
 time.sleep(3)
 
 # send new batch message
-send_telegram_message(message="🚀 Starting new job scraping batch...")
+timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+send_telegram_message(
+    message=f"<code>{timestamp}</code> - 🚀 Starting new job scraping batch..."
+)
 
 # previous jobs count
 prev_count = 0
@@ -66,31 +60,14 @@ while True:
 # parse job listings
 jobs = driver.find_elements(By.CLASS_NAME, "base-card")
 jobs_list = []
-links = []
+seen_links = []
 
-# blacklisted companies
-companies = [
-    "Lensa",
-    "Wiraa",
-    "Revature",
-    "Mobi.AI",
-    "Robert Half",
-    "Brooksource",
-    "Dice",
-]
-blacklisted = {c.lower() for c in companies}
 
 # get existing links from DB
 existing_links = {
     item["job_link"]
     for item in supabase.table("jobs").select("job_link").execute().data
 }
-
-
-def normalize_link(url):
-    parsed = urlparse(url)
-    return f"{parsed.scheme}://{parsed.netloc}{parsed.path}"
-
 
 try:
     for job in jobs:
@@ -115,6 +92,7 @@ try:
             # Now extract basic job info again (from the original card)
             raw_link = job.find_element(By.TAG_NAME, "a").get_attribute("href")
             parsed_link = normalize_link(raw_link)
+
             company = job.find_element(By.CLASS_NAME, "base-search-card__subtitle").text
 
             if company.lower() in blacklisted:
@@ -123,7 +101,7 @@ try:
                 )
                 continue
 
-            if parsed_link in links:
+            if parsed_link in seen_links:
                 print("🚫 Skipped adding job, already seen!")
                 continue
 
@@ -143,7 +121,7 @@ try:
                 }
             )
 
-            links.append(parsed_link)
+            seen_links.append(parsed_link)
 
             send_telegram_message(title=title, company=company, href=parsed_link)
 
@@ -158,6 +136,8 @@ driver.quit()
 
 try:
     supabase.table("jobs").insert(jobs_list).execute()
-    send_telegram_message(f"✅ Scraper finished. Collected {len(jobs_list)} job(s).")
+    send_telegram_message(
+        f"✅ <b>Scraper finished!</b>\nTotal Jobs Found: {len(jobs)}\nJobs Collected: {len(jobs_list)}\nJobs Skipped {len(jobs) - len(jobs_list)}"
+    )
 except Exception as e:
     send_telegram_message(f"⚠️ Scraper failed:\n<code>{e}</code>")
