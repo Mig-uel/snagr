@@ -56,7 +56,10 @@ jobs_list = []
 companies = ["Lensa", "Wiraa", "Revature"]
 blacklisted = {c.lower() for c in companies}
 
-existing_links = {item["job_link"]}
+existing_links = {
+    item["job_link"]
+    for item in supabase.table("jobs").select("job_link").execute().data
+}
 
 try:
     for job in jobs:
@@ -88,23 +91,24 @@ try:
                 )
                 continue
 
-            if not job_exists(job_link):
-                title = job.find_element(By.CLASS_NAME, "base-search-card__title").text
+            if job_link in existing_links:
+                print("🚫 Skipped adding job, already in database!")
+                continue
 
-                location = job.find_element(
-                    By.CLASS_NAME, "job-search-card__location"
-                ).text
+            title = job.find_element(By.CLASS_NAME, "base-search-card__title").text
 
-                jobs_list.append(
-                    {
-                        "title": title,
-                        "company": company,
-                        "location": location,
-                        "job_link": job_link,
-                    }
-                )
+            location = job.find_element(By.CLASS_NAME, "job-search-card__location").text
 
-                send_telegram_message(title=title, company=company, href=job_link)
+            jobs_list.append(
+                {
+                    "title": title,
+                    "company": company,
+                    "location": location,
+                    "job_link": job_link,
+                }
+            )
+
+            send_telegram_message(title=title, company=company, href=job_link)
 
         except Exception as e:
             print("Skipping a job due to error:", e)
