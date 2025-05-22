@@ -51,7 +51,8 @@ for _ in range(3):
 # parse job listings
 jobs = driver.find_elements(By.CLASS_NAME, "base-card")
 
-job_list = []
+# job_list = []
+jobs_count = 0
 
 try:
     for job in jobs:
@@ -74,12 +75,17 @@ try:
             #     continue
 
             # Now extract basic job info again (from the original card)
-            title = job.find_element(By.CLASS_NAME, "base-search-card__title").text
-            company = job.find_element(By.CLASS_NAME, "base-search-card__subtitle").text
-            location = job.find_element(By.CLASS_NAME, "job-search-card__location").text
             job_link = job.find_element(By.TAG_NAME, "a").get_attribute("href")
 
             if not job_exists(job_link):
+                title = job.find_element(By.CLASS_NAME, "base-search-card__title").text
+                company = job.find_element(
+                    By.CLASS_NAME, "base-search-card__subtitle"
+                ).text
+                location = job.find_element(
+                    By.CLASS_NAME, "job-search-card__location"
+                ).text
+
                 supabase.table("jobs").insert(
                     {
                         "title": title,
@@ -89,14 +95,9 @@ try:
                     }
                 ).execute()
 
-                job_list.append(
-                    {
-                        "Title": title,
-                        "Company": company,
-                        "Location": location,
-                        "Job Page Link": job_link,
-                    }
-                )
+                send_telegram_message(title=title, company=company, href=job_link)
+
+                jobs_count += 1
 
         except Exception as e:
             print("Skipping a job due to error:", e)
@@ -107,4 +108,4 @@ except Exception as e:
 
 driver.quit()
 
-send_telegram_message(f"✅ Scraper finished. Collected {len(job_list)} job(s).")
+send_telegram_message(f"✅ Scraper finished. Collected {jobs_count} job(s).")
