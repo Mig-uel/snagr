@@ -1,3 +1,4 @@
+import os
 import time
 
 import pandas as pd
@@ -7,7 +8,21 @@ from selenium.webdriver.chrome.service import Service
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.support.ui import WebDriverWait
+from supabase import Client, create_client
 from webdriver_manager.chrome import ChromeDriverManager
+
+url = os.getenv("SUPABASE_URL")
+key = os.getenv("SUPABASE_KEY")
+
+# create supabase client
+supabase: Client = create_client(url, key)
+
+
+# check + insert
+def job_exists(link):
+    result = supabase.table("jobs").select("job_link").eq("job_link", link).execute()
+    return len(result.data) > 0
+
 
 options = Options()
 options.add_argument("--headless")
@@ -60,14 +75,24 @@ for job in jobs:
         location = job.find_element(By.CLASS_NAME, "job-search-card__location").text
         job_link = job.find_element(By.TAG_NAME, "a").get_attribute("href")
 
-        job_list.append(
-            {
-                "Title": title,
-                "Company": company,
-                "Location": location,
-                "Job Page Link": job_link,
-            }
-        )
+        if not job_exists(job_link):
+            supabase.table("jobs").insert(
+                {
+                    "title": title,
+                    "company": company,
+                    "location": location,
+                    "job_link": job_link,
+                }
+            ).execute()
+
+            job_list.append(
+                {
+                    "Title": title,
+                    "Company": company,
+                    "Location": location,
+                    "Job Page Link": job_link,
+                }
+            )
 
     except Exception as e:
         print("Skipping a job due to error:", e)
