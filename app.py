@@ -1,5 +1,6 @@
 import os
 import time
+from datetime import datetime, timedelta, timezone
 
 import requests
 from selenium import webdriver
@@ -24,6 +25,12 @@ supabase: Client = create_client(url, key)
 def job_exists(link):
     result = supabase.table("jobs").select("job_link").eq("job_link", link).execute()
     return len(result.data) > 0
+
+
+# SUPABASE: CLEAR OLD JOBS
+def cleanup_old_jobs(hours=24):
+    cutoff = datetime.now(timezone.utc) - timedelta(hours=hours)
+    supabase.table("jobs").delete().lt("scraped", cutoff.isoformat()).execute()
 
 
 # TELEGRAM CONFIG
