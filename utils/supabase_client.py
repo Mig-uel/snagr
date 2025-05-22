@@ -12,6 +12,6 @@ def get_supabase() -> Client:
     global _supabase
 
     if _supabase is None:
-        _supabase - create_client(url, key)
+        _supabase = create_client(url, key)
 
     return _supabase
