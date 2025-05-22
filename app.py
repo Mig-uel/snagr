@@ -43,8 +43,19 @@ url = "https://www.linkedin.com/jobs/search/?f_TPR=r3600&keywords=junior%20softw
 driver.get(url)
 time.sleep(3)
 
+# previous jobs count
+prev_count = 0
+
 # scroll to load more jobs
-for _ in range(3):
+while True:
+    jobs = driver.find_elements(By.CLASS_NAME, "base-card")
+    current_count = len(jobs)
+
+    if current_count == prev_count:
+        break  # no new jobs loaded
+
+    prev_count = current_count
+
     driver.execute_script("window.scrollTo(0, document.body.scrollHeight);")
     time.sleep(2)
 
@@ -56,16 +67,18 @@ jobs_list = []
 companies = ["Lensa", "Wiraa", "Revature"]
 blacklisted = {c.lower() for c in companies}
 
+# get existing links from DB
 existing_links = {
     item["job_link"]
     for item in supabase.table("jobs").select("job_link").execute().data
 }
 
+
 try:
     for job in jobs:
         try:
             # Scroll job into view and click to load details
-            driver.execute_script("arguments[0].scrollIntoView();", job)
+            # driver.execute_script("arguments[0].scrollIntoView();", job)
             # job.click()
 
             # # Wait for the Apply button in the side panel
