@@ -56,6 +56,8 @@ jobs_list = []
 companies = ["Lensa", "Wiraa", "Revature"]
 blacklisted = {c.lower() for c in companies}
 
+existing_links = {item["job_link"]}
+
 try:
     for job in jobs:
         try:
@@ -82,7 +84,7 @@ try:
 
             if company.lower() in blacklisted:
                 send_telegram_message(
-                    message=f"🚫 Skipped blacklisted company: {company}"
+                    message=f"🚫 Skipped blacklisted company: <b>{company}</b>"
                 )
                 continue
 
