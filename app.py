@@ -1,25 +1,21 @@
-import os
 import time
 from datetime import datetime
 
+from playwright.sync_api import sync_playwright
 from selenium import webdriver
 from selenium.webdriver.chrome.options import Options
 from selenium.webdriver.chrome.service import Service
 from selenium.webdriver.common.by import By
-from supabase import Client, create_client
 from webdriver_manager.chrome import ChromeDriverManager
 
 from utils.blacklisted_companies import blacklisted
 from utils.constants import SOURCE_URL
 from utils.normalize_link import normalize_link
+from utils.supabase_client import get_supabase
 from utils.telegram_send_message import send_telegram_message
 
-# SUPABASE CONFIG
-url = os.getenv("SUPABASE_URL")
-key = os.getenv("SUPABASE_KEY")
-
-# SUPABASE: CREATE CLIENT
-supabase: Client = create_client(url, key)
+# SUPABASE
+supabase = get_supabase()
 
 options = Options()
 options.add_argument("--headless")
