@@ -1,8 +1,6 @@
 import os
 import time
-from datetime import datetime, timedelta, timezone
 
-import requests
 from selenium import webdriver
 from selenium.webdriver.chrome.options import Options
 from selenium.webdriver.chrome.service import Service
@@ -12,6 +10,8 @@ from selenium.webdriver.common.by import By
 # from selenium.webdriver.support.ui import WebDriverWait
 from supabase import Client, create_client
 from webdriver_manager.chrome import ChromeDriverManager
+
+from utils.telegram_send_message import send_telegram_message
 
 # SUPABASE CONFIG
 url = os.getenv("SUPABASE_URL")
@@ -27,28 +27,9 @@ def job_exists(link):
     return len(result.data) > 0
 
 
-# SUPABASE: CLEAR OLD JOBS
-def cleanup_old_jobs(hours=24):
-    cutoff = datetime.now(timezone.utc) - timedelta(hours=hours)
-    supabase.table("jobs").delete().lt("scraped", cutoff.isoformat()).execute()
-
-
 # TELEGRAM CONFIG
 TELEGRAM_BOT_TOKEN = os.getenv("TELEGRAM_BOT_TOKEN")
 TELEGRAM_CHAT_ID = os.getenv("TELEGRAM_CHAT_ID")
-
-
-# TELEGRAM: SEND MESSAGE
-def send_telegram_message(message: str):
-    url = f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/sendMessage"
-    payload = {"chat_id": TELEGRAM_CHAT_ID, "text": message, "parse_mode": "HTML"}
-
-    try:
-        res = requests.post(url, data=payload)
-        if res.status_code != 200:
-            print(f"Telegram error: {res.text}")
-    except Exception as e:
-        print(f"Failed to send Telegram message: {e}")
 
 
 options = Options()
