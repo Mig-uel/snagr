@@ -43,6 +43,9 @@ url = "https://www.linkedin.com/jobs/search/?f_TPR=r3600&keywords=junior%20softw
 driver.get(url)
 time.sleep(3)
 
+# send new batch message
+send_telegram_message(message="🚀 Starting new job scraping batch...")
+
 # previous jobs count
 prev_count = 0
 
