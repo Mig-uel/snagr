@@ -27,11 +27,6 @@ def job_exists(link):
     return len(result.data) > 0
 
 
-# TELEGRAM CONFIG
-TELEGRAM_BOT_TOKEN = os.getenv("TELEGRAM_BOT_TOKEN")
-TELEGRAM_CHAT_ID = os.getenv("TELEGRAM_CHAT_ID")
-
-
 options = Options()
 options.add_argument("--headless")
 options.add_argument("--window-size=1920,1080")
