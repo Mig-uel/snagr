@@ -1,5 +1,6 @@
 import os
 import time
+from urllib.parse import urlparse
 
 from selenium import webdriver
 from selenium.webdriver.chrome.options import Options
@@ -77,6 +78,11 @@ existing_links = {
 }
 
 
+def normalize_link(url):
+    parsed = urlparse(url)
+    return f"{parsed.scheme}://{parsed.netloc}{parsed.path}"
+
+
 try:
     for job in jobs:
         try:
@@ -98,7 +104,8 @@ try:
             #     continue
 
             # Now extract basic job info again (from the original card)
-            job_link = job.find_element(By.TAG_NAME, "a").get_attribute("href")
+            raw_link = job.find_element(By.TAG_NAME, "a").get_attribute("href")
+            parsed_link = normalize_link(raw_link)
             company = job.find_element(By.CLASS_NAME, "base-search-card__subtitle").text
 
             if company.lower() in blacklisted:
@@ -107,7 +114,7 @@ try:
                 )
                 continue
 
-            if job_link in existing_links:
+            if parsed_link in existing_links:
                 print("🚫 Skipped adding job, already in database!")
                 continue
 
@@ -119,11 +126,11 @@ try:
                     "title": title,
                     "company": company,
                     "location": location,
-                    "job_link": job_link,
+                    "job_link": parsed_link,
                 }
             )
 
-            send_telegram_message(title=title, company=company, href=job_link)
+            send_telegram_message(title=title, company=company, href=parsed_link)
 
         except Exception as e:
             print("Skipping a job due to error:", e)
