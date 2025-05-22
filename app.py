@@ -67,7 +67,7 @@ jobs = driver.find_elements(By.CLASS_NAME, "base-card")
 jobs_list = []
 
 # blacklisted companies
-companies = ["Lensa", "Wiraa", "Revature", "Mobi.AI"]
+companies = ["Lensa", "Wiraa", "Revature", "Mobi.AI", "Robert Half"]
 blacklisted = {c.lower() for c in companies}
 
 # get existing links from DB
