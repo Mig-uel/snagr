@@ -143,6 +143,8 @@ try:
                 }
             )
 
+            links.append(parsed_link)
+
             send_telegram_message(title=title, company=company, href=parsed_link)
 
         except Exception as e:
