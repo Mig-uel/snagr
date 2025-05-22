@@ -66,6 +66,7 @@ while True:
 # parse job listings
 jobs = driver.find_elements(By.CLASS_NAME, "base-card")
 jobs_list = []
+links = []
 
 # blacklisted companies
 companies = [
@@ -120,6 +121,10 @@ try:
                 send_telegram_message(
                     message=f"🚫 Skipped blacklisted company: <b>{company}</b>"
                 )
+                continue
+
+            if parsed_link in links:
+                print("🚫 Skipped adding job, already seen!")
                 continue
 
             if parsed_link in existing_links:
