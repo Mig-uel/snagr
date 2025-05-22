@@ -1,0 +1,26 @@
+name: 'Cleanup Old Jobs'
+
+on:
+  schedule:
+    - cron: '0 3 * * *'
+  workflow_dispatch:
+
+jobs:
+  cleanup:
+    runs-on: ubuntu-latest
+    env:
+      SUPABASE_URL: ${{secrets.SUPABASE_URL}}
+      SUPABASE_KEY: ${{secrets.SUPABASE_KEY}}
+
+    steps:
+      - uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+
+      - name: 'Install Dependencies'
+        run: |
+          pip install supabase
+
+      - name: 'Run Cleanup'
+        run: |
+          python cleanup.py
