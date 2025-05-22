@@ -81,7 +81,7 @@ try:
     for job in jobs:
         try:
             # Scroll job into view and click to load details
-            # driver.execute_script("arguments[0].scrollIntoView();", job)
+            driver.execute_script("arguments[0].scrollIntoView();", job)
             # job.click()
 
             # # Wait for the Apply button in the side panel
