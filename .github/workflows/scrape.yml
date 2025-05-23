@@ -30,11 +30,6 @@ jobs:
           restore-keys: |
             playwright-chromium-${{ runner.os }}-
 
-      - name: Install system dependencies
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y libnss3 libatk-bridge2.0-0 libxss1 libgtk-3-0 libasound2
-
       - name: 'Install Dependencies'
         run: |
           pip install --upgrade pip
