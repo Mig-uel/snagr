@@ -1,3 +1,4 @@
+import json
 from datetime import datetime
 
 from playwright.sync_api import sync_playwright
@@ -14,7 +15,6 @@ send_telegram_message(
     message=f"<code>{timestamp}</code> - 🚀 Starting new job scraping batch..."
 )
 
-
 supabase = get_supabase()
 
 existing_links = {
@@ -23,97 +23,116 @@ existing_links = {
 }
 
 with sync_playwright() as p:
-    browser = p.chromium.launch()
+    browser = p.chromium.launch(headless=False)
+    context = browser.new_context()
 
-    page = browser.new_page()
+    # Load saved cookies
+    with open("linkedin_cookies.json", "r") as f:
+        cookies = json.load(f)
+        context.add_cookies(cookies)
+
+    page = context.new_page()
     page.goto(SOURCE_URL)
-
     page.wait_for_timeout(3000)
 
-    print(page.title())
+    with open("page_dump.html", "w", encoding="utf-8") as f:
+        f.write(page.content())
 
-    prev_count = 0
-    # scroll to load more jobs
-    while True:
-        jobs = page.locator(".base-card")
-
-        current_count = jobs.count()
-
-        if current_count == prev_count:
-            break  # no new jobs loaded
-
-        prev_count = current_count
-
-        page.evaluate("window.scrollTo(0, document.body.scrollHeight);")
-
-        page.wait_for_timeout(2000)
-
-    jobs = page.locator(".base-card").all()
+    # pagination
+    page_num = 1
     jobs_list = []
     seen_links = set()
 
-    try:
-        for job in jobs:
-            try:
-                # extract raw link from job card
-                link_element = job.locator("a").first
-                raw_link = link_element.get_attribute("href")
+    while True:
+        try:
+            previous_count = 0
+            while True:
+                job_cards = page.locator(".job-card-container")
+                current_count = job_cards.count()
 
-                # normalize link (i.e. remove search params)
-                parsed_link = normalize_link(raw_link)
+                if current_count == previous_count:
+                    break  # No new jobs loaded
 
-                # extract company name
-                company_element = job.locator(".base-search-card__subtitle").first
-                company = company_element.inner_text()
+                previous_count = current_count
 
-                if company.lower() in blacklisted:
-                    send_telegram_message(
-                        message=f"🚫 Skipped blacklisted company: <b>{company}</b>"
+                # Scroll the last job into view to trigger lazy load
+                job_cards.nth(current_count - 1).scroll_into_view_if_needed()
+                # Wait until new jobs are added
+                page.wait_for_timeout(1000)
+
+            job_cards = page.locator(".job-card-container").all()
+
+            for job in job_cards:
+                try:
+                    # extract company name
+                    company = job.locator(
+                        ".artdeco-entity-lockup__subtitle"
+                    ).first.inner_text()
+
+                    # skip blacklisted companies
+                    if company.strip().lower() in blacklisted:
+                        send_telegram_message(
+                            message=f"🚫 Skipped blacklisted company: <b>{company}</b>"
+                        )
+                        continue
+
+                    # extract job link and normalize
+                    raw_link = job.locator("a").first.get_attribute("href")
+                    if not raw_link:
+                        continue
+                    parsed_link = normalize_link(f"https://linkedin.com{raw_link}")
+
+                    # skip if link already seen or in db
+                    if parsed_link in seen_links or parsed_link in existing_links:
+                        print("🚫 Skipped adding job, already seen or in database!")
+                        continue
+
+                    location = job.locator(
+                        ".artdeco-entity-lockup__caption"
+                    ).first.inner_text()
+                    title = job.locator("strong").first.inner_text()
+
+                    jobs_list.append(
+                        {
+                            "title": title,
+                            "company": company,
+                            "location": location,
+                            "job_link": parsed_link,
+                        }
                     )
-                    continue
 
-                if parsed_link in seen_links:
-                    print("🚫 Skipped adding job, already seen!")
-                    continue
+                    seen_links.add(parsed_link)
 
-                if parsed_link in existing_links:
-                    print("🚫 Skipped adding job, already in database!")
-                    continue
+                    send_telegram_message(
+                        title=title, company=company, href=parsed_link
+                    )
 
-                # extract job title
-                title_element = job.locator(".base-search-card__title").first
-                title = title_element.inner_text()
+                except Exception as e:
+                    print(f"⚠️ Skipping job due to error: {e}")
 
-                # extract job location
-                location_element = job.locator(".job-search-card__location").first
-                location = location_element.inner_text()
+            # find next button
+            next_btn = page.locator('button[aria-label="View next page"]')
 
-                jobs_list.append(
-                    {
-                        "title": title,
-                        "company": company,
-                        "location": location,
-                        "job_link": parsed_link,
-                    }
-                )
+            if next_btn.is_visible() and not next_btn.is_disabled():
+                next_btn.click()
+                page.wait_for_timeout(2000)
+                page_num += 1
+            else:
+                print("✅ Reached last page.")
+                break
+        except Exception as e:
+            send_telegram_message(f"⚠️ Scraper failed:\n<code>{e}</code>")
+            context.close()
+            browser.close()
+            raise
 
-                # append current link to seen list
-                seen_links.add(parsed_link)
-
-                send_telegram_message(title=title, company=company, href=parsed_link)
-            except Exception as e:
-                print(f"⚠️ Skipping job due to error: {e}")
-    except Exception as e:
-        send_telegram_message(f"⚠️ Scraper failed:\n<code>{e}</code>")
-        browser.close()
-        raise
-
+    context.close()
     browser.close()
 
     try:
         supabase.table("jobs").insert(jobs_list).execute()
         send_telegram_message(
-            f"✅ <b>Scraper finished!</b>\nTotal Jobs Found: {len(jobs)}\nJobs Collected: {len(jobs_list)}\nJobs Skipped {len(jobs) - len(jobs_list)}"
+            f"✅ <b>Scraper finished!</b>\nTotal Jobs Found: {len(jobs_list)}\nJobs Collected: {len(jobs_list)}"
         )
     except Exception as e:
         send_telegram_message(f"⚠️ Scraper failed:\n<code>{e}</code>")
