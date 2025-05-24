@@ -9,11 +9,10 @@ from utils.supabase_client import get_supabase
 from utils.telegram_send_message import send_telegram_message
 
 # send new batch message
-timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+timestamp = datetime.now().strftime("%A, %B %d, %Y at %-I:%M %p")
 send_telegram_message(
-    message=f"<code>{timestamp}</code> - 🚀 Starting new job scraping batch..."
+    message=f"<code>{timestamp}</code>\n🤖 <b>Starting new job scraping batch...</b>"
 )
-
 
 supabase = get_supabase()
 
