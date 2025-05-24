@@ -4,7 +4,7 @@ from playwright.sync_api import sync_playwright
 
 from utils.blacklisted_companies import blacklisted
 from utils.constants import SOURCE_URL
-from utils.existing_links import get_existing_job_link
+from utils.existing_links import get_existing_job_links
 from utils.normalize_link import normalize_link
 from utils.supabase_client import get_supabase
 from utils.telegram_send_message import send_telegram_message
@@ -17,7 +17,7 @@ send_telegram_message(
 
 supabase = get_supabase()
 
-existing_links = get_existing_job_link()
+existing_links = get_existing_job_links()
 
 with sync_playwright() as p:
     browser = p.chromium.launch()
