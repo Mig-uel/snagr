@@ -33,9 +33,6 @@ with sync_playwright() as p:
     page.goto(SOURCE_URL)
     page.wait_for_timeout(3000)
 
-    with open("page_dump.html", "w", encoding="utf-8") as f:
-        f.write(page.content())
-
     # pagination
     page_num = 1
     jobs_list = []
@@ -63,7 +60,7 @@ with sync_playwright() as p:
                 page.wait_for_timeout(1000)
 
             job_cards = page.locator(".job-card-container").all()
-            total_jobs += job_cards.count()
+            total_jobs += len(job_cards)
 
             for job in job_cards:
                 try:
