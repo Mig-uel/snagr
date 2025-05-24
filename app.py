@@ -1,4 +1,5 @@
 import json
+import time
 from datetime import datetime
 
 from playwright.sync_api import sync_playwright
@@ -111,6 +112,7 @@ with sync_playwright() as p:
                     send_telegram_message(
                         title=title, company=company, href=parsed_link
                     )
+                    time.sleep(0.2)
 
                 except Exception as e:
                     print(f"⚠️ <b>Skipping job due to error:</b>\n<code>{e}</code>")
@@ -135,9 +137,12 @@ with sync_playwright() as p:
     browser.close()
 
     try:
-        supabase.table("jobs").insert(jobs_list).execute()
-        send_telegram_message(
-            f"✅ <b>Scraper finished!</b>\n\nTotal Jobs Found: {total_jobs}\nJobs Collected: {len(jobs_list)}\nJobs Skipped: {skipped_links}\nBlacklisted Jobs: {blacklisted_links}"
-        )
+        if jobs_list:
+            supabase.table("jobs").insert(jobs_list).execute()
+            send_telegram_message(
+                f"✅ <b>Scraper finished!</b>\n\nTotal Jobs Found: {total_jobs}\nJobs Collected: {len(jobs_list)}\nJobs Skipped: {skipped_links}\nBlacklisted Jobs: {blacklisted_links}"
+            )
+        else:
+            send_telegram_message("ℹ️ No new jobs to insert.")
     except Exception as e:
         send_telegram_message(f"⚠️ <b>Supabase insertion failed:</b>\n<code>{e}</code>")
