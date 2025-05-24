@@ -5,22 +5,20 @@ from playwright.sync_api import sync_playwright
 
 from utils.blacklisted_companies import blacklisted
 from utils.constants import SOURCE_URL
+from utils.existing_links import get_existing_job_links
 from utils.normalize_link import normalize_link
 from utils.supabase_client import get_supabase
 from utils.telegram_send_message import send_telegram_message
 
 # send new batch message
-timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+timestamp = datetime.now().strftime("%A, %B %d, %Y at %-I:%M %p")
 send_telegram_message(
-    message=f"<code>{timestamp}</code> - 🚀 Starting new job scraping batch..."
+    message=f"<code>{timestamp}</code>\n🤖 <b>Starting new job scraping batch...</b>"
 )
 
 supabase = get_supabase()
 
-existing_links = {
-    item["job_link"]
-    for item in supabase.table("jobs").select("job_link").execute().data
-}
+existing_links = get_existing_job_links()
 
 with sync_playwright() as p:
     browser = p.chromium.launch(headless=False)
@@ -41,7 +39,10 @@ with sync_playwright() as p:
     # pagination
     page_num = 1
     jobs_list = []
+
     seen_links = set()
+    skipped_links = 0
+    blacklisted_links = 0
 
     while True:
         try:
@@ -135,4 +136,4 @@ with sync_playwright() as p:
             f"✅ <b>Scraper finished!</b>\nTotal Jobs Found: {len(jobs_list)}\nJobs Collected: {len(jobs_list)}"
         )
     except Exception as e:
-        send_telegram_message(f"⚠️ Scraper failed:\n<code>{e}</code>")
+        send_telegram_message(f"⚠️ <b>Supabase insertion failed:</b>\n<code>{e}</code>")

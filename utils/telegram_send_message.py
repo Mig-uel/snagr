@@ -17,6 +17,6 @@ def send_telegram_message(message="", title="", href="", company=""):
     try:
         res = requests.post(url, data=payload)
         if res.status_code != 200:
-            print(f"Telegram error: {res.text}")
+            print(f"⚠️ Telegram error: {res.text}")
     except Exception as e:
-        print(f"Failed to send Telegram message: {e}")
+        print(f"⚠️ <b>Failed to send Telegram message:</b>\n{e}")
