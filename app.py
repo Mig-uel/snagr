@@ -21,6 +21,30 @@ supabase = get_supabase()
 
 existing_links = get_existing_job_links()
 
+
+def load_all_jobs_on_page(page):
+    previous_count = -1
+    stable_scrolls = 0
+    max_stable_scrolls = 3  # stop after 3 scrolls with no new jobs
+
+    while stable_scrolls < max_stable_scrolls:
+        job_cards = page.locator(".job-card-container")
+        current_count = job_cards.count()
+
+        if current_count == previous_count:
+            stable_scrolls += 1
+        else:
+            stable_scrolls = 0
+
+        previous_count = current_count
+
+        # scroll last card into view
+        if current_count > 0:
+            job_cards.nth(current_count - 1).scroll_into_view_if_needed()
+
+        page.wait_for_timeout(1000)
+
+
 with sync_playwright() as p:
     browser = p.chromium.launch(headless=False)
     context = browser.new_context()
@@ -60,6 +84,7 @@ with sync_playwright() as p:
                 # Wait until new jobs are added
                 page.wait_for_timeout(1000)
 
+            load_all_jobs_on_page(page)
             job_cards = page.locator(".job-card-container").all()
             total_jobs += len(job_cards)
 
@@ -96,7 +121,15 @@ with sync_playwright() as p:
                     location = job.locator(
                         ".artdeco-entity-lockup__caption"
                     ).first.inner_text()
-                    title = job.locator("strong").first.inner_text()
+                    title_locator = job.locator("strong").first
+                    try:
+                        title_locator.wait_for(
+                            timeout=3000
+                        )  # wait up to 3s for it to appear
+                        title = title_locator.inner_text()
+                    except Exception as e:
+                        print(f"⚠️ Title not found or timeout: {e}")
+                        continue
 
                     jobs_list.append(
                         {
@@ -143,6 +176,8 @@ with sync_playwright() as p:
                 f"✅ <b>Scraper finished!</b>\n\nTotal Jobs Found: {total_jobs}\nJobs Collected: {len(jobs_list)}\nJobs Skipped: {skipped_links}\nBlacklisted Jobs: {blacklisted_links}"
             )
         else:
-            send_telegram_message("ℹ️ No new jobs to insert.")
+            send_telegram_message(
+                f"ℹ️ No new jobs to insert.\nTotal Jobs Found: {total_jobs}"
+            )
     except Exception as e:
         send_telegram_message(f"⚠️ <b>Supabase insertion failed:</b>\n<code>{e}</code>")
