@@ -4,6 +4,7 @@ from playwright.sync_api import sync_playwright
 
 from utils.blacklisted_companies import blacklisted
 from utils.constants import SOURCE_URL
+from utils.existing_links import get_existing_job_link
 from utils.normalize_link import normalize_link
 from utils.supabase_client import get_supabase
 from utils.telegram_send_message import send_telegram_message
@@ -16,10 +17,7 @@ send_telegram_message(
 
 supabase = get_supabase()
 
-existing_links = {
-    item["job_link"]
-    for item in supabase.table("jobs").select("job_link").execute().data
-}
+existing_links = get_existing_job_link()
 
 with sync_playwright() as p:
     browser = p.chromium.launch()
@@ -49,7 +47,10 @@ with sync_playwright() as p:
 
     jobs = page.locator(".base-card").all()
     jobs_list = []
+
     seen_links = set()
+    skipped_links = 0
+    blacklisted_links = 0
 
     try:
         for job in jobs:
@@ -66,17 +67,19 @@ with sync_playwright() as p:
                 company = company_element.inner_text()
 
                 if company.lower() in blacklisted:
+                    blacklisted_links += 1
                     send_telegram_message(
                         message=f"🚫 Skipped blacklisted company: <b>{company}</b>"
                     )
                     continue
 
-                if parsed_link in seen_links:
-                    print("🚫 Skipped adding job, already seen!")
+                if parsed_link in existing_links:
+                    skipped_links += 1
+                    print("🚫 Skipped adding job, already in database!")
                     continue
 
-                if parsed_link in existing_links:
-                    print("🚫 Skipped adding job, already in database!")
+                if parsed_link in seen_links:
+                    print("🚫 Skipped adding job, already seen!")
                     continue
 
                 # extract job title
@@ -103,7 +106,7 @@ with sync_playwright() as p:
             except Exception as e:
                 print(f"⚠️ Skipping job due to error: {e}")
     except Exception as e:
-        send_telegram_message(f"⚠️ Scraper failed:\n<code>{e}</code>")
+        send_telegram_message(f"⚠️ <b>Scraper failed:</b>\n<code>{e}</code>")
         browser.close()
         raise
 
@@ -112,7 +115,7 @@ with sync_playwright() as p:
     try:
         supabase.table("jobs").insert(jobs_list).execute()
         send_telegram_message(
-            f"✅ <b>Scraper finished!</b>\nTotal Jobs Found: {len(jobs)}\nJobs Collected: {len(jobs_list)}\nJobs Skipped {len(jobs) - len(jobs_list)}"
+            f"✅ <b>Scraper finished!</b>\nTotal Jobs Found: {len(jobs)}\nJobs Collected: {len(jobs_list)}\nJobs Skipped: {skipped_links}\nJobs Blacklisted {blacklisted_links}"
         )
     except Exception as e:
-        send_telegram_message(f"⚠️ Scraper failed:\n<code>{e}</code>")
+        send_telegram_message(f"⚠️ <b>Supabase insertion failed:</b>\n<code>{e}</code>")
