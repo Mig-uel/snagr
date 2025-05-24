@@ -4,7 +4,5 @@ supabase = get_supabase()
 
 
 def get_existing_job_link() -> set[str]:
-    return {
-        item["job_link"]
-        for item in supabase.table("jobs").select("job_link").execute().data
-    }
+    res = supabase.table("jobs").select("job_link").limit(None).execute()
+    return {item["job_link"] for item in res.data}
