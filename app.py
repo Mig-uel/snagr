@@ -39,6 +39,7 @@ with sync_playwright() as p:
     # pagination
     page_num = 1
     jobs_list = []
+    total_jobs = 0
 
     seen_links = set()
     skipped_links = 0
@@ -62,6 +63,7 @@ with sync_playwright() as p:
                 page.wait_for_timeout(1000)
 
             job_cards = page.locator(".job-card-container").all()
+            total_jobs += job_cards.count()
 
             for job in job_cards:
                 try:
@@ -72,6 +74,7 @@ with sync_playwright() as p:
 
                     # skip blacklisted companies
                     if company.strip().lower() in blacklisted:
+                        blacklisted_links += 1
                         send_telegram_message(
                             message=f"🚫 Skipped blacklisted company: <b>{company}</b>"
                         )
@@ -83,9 +86,13 @@ with sync_playwright() as p:
                         continue
                     parsed_link = normalize_link(f"https://linkedin.com{raw_link}")
 
-                    # skip if link already seen or in db
-                    if parsed_link in seen_links or parsed_link in existing_links:
-                        print("🚫 Skipped adding job, already seen or in database!")
+                    # skip if link already in db or seen
+                    if parsed_link in existing_links:
+                        skipped_links += 1
+                        print("🚫 Skipped job, already in database!")
+                        continue
+                    if parsed_link in seen_links:
+                        print("🚫 Skipped job, already seen!")
                         continue
 
                     location = job.locator(
@@ -109,7 +116,7 @@ with sync_playwright() as p:
                     )
 
                 except Exception as e:
-                    print(f"⚠️ Skipping job due to error: {e}")
+                    print(f"⚠️ <b>Skipping job due to error:</b>\n<code>{e}</code>")
 
             # find next button
             next_btn = page.locator('button[aria-label="View next page"]')
@@ -122,7 +129,7 @@ with sync_playwright() as p:
                 print("✅ Reached last page.")
                 break
         except Exception as e:
-            send_telegram_message(f"⚠️ Scraper failed:\n<code>{e}</code>")
+            send_telegram_message(f"⚠️ <b>Scraper failed:</b>\n<code>{e}</code>")
             context.close()
             browser.close()
             raise
@@ -133,7 +140,7 @@ with sync_playwright() as p:
     try:
         supabase.table("jobs").insert(jobs_list).execute()
         send_telegram_message(
-            f"✅ <b>Scraper finished!</b>\nTotal Jobs Found: {len(jobs_list)}\nJobs Collected: {len(jobs_list)}"
+            f"✅ <b>Scraper finished!</b>\n\nTotal Jobs Found: {total_jobs}\nJobs Collected: {len(jobs_list)}\nJobs Skipped: {skipped_links}\nBlacklisted Jobs: {blacklisted_links}"
         )
     except Exception as e:
         send_telegram_message(f"⚠️ <b>Supabase insertion failed:</b>\n<code>{e}</code>")
