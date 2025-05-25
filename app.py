@@ -91,6 +91,7 @@ with sync_playwright() as p:
                         print("🚫 Skipped job, already in database!")
                         continue
                     if parsed_link in seen_links:
+                        skipped_links += 1
                         print("🚫 Skipped job, already seen!")
                         continue
 
