@@ -35,6 +35,13 @@ with sync_playwright() as p:
     page.goto(SOURCE_URL)
     page.wait_for_timeout(3000)
 
+    # TODO: work on detecting cookie expiration
+    # if "login" in page.url:
+    #     send_telegram_message(
+    #         "⚠️ <b>LinkedIn session expired. Please upload a new cookie.</b>"
+    #     )
+    #     raise Exception("⚠️ <b>Session Expired</b>")
+
     # pagination
     page_num = 1
     jobs_list = []
@@ -58,11 +65,19 @@ with sync_playwright() as p:
 
                 # Scroll the last job into view to trigger lazy load
                 job_cards.nth(current_count - 1).scroll_into_view_if_needed()
+
                 # Wait until new jobs are added
-                page.wait_for_timeout(1000)
+                page.wait_for_timeout(2000)
+
+                page.locator(".jobs-search-pagination").scroll_into_view_if_needed()
+
+                # Wait until more jobs load
+                page.wait_for_timeout(3000)
 
             job_cards = page.locator(".job-card-container").all()
             total_jobs += len(job_cards)
+
+            send_telegram_message(f"<b>Page #{page_num}</b>")
 
             for job in job_cards:
                 try:
@@ -99,14 +114,14 @@ with sync_playwright() as p:
                         ".artdeco-entity-lockup__caption"
                     ).first.inner_text()
                     title_locator = job.locator("strong").first
-                    try:
-                        title_locator.wait_for(
-                            timeout=3000
-                        )  # wait up to 3s for it to appear
-                        title = title_locator.inner_text()
-                    except Exception as e:
-                        print(f"⚠️ Title not found or timeout: {e}")
-                        continue
+                    # try:
+                    #     title_locator.wait_for(
+                    #         timeout=3000
+                    #     )  # wait up to 3s for it to appear
+                    title = title_locator.inner_text(timeout=2000)
+                    # except Exception as e:
+                    #     print(f"⚠️ Title not found or timeout: {e}")
+                    #     continue
 
                     jobs_list.append(
                         {
