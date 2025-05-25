@@ -26,7 +26,7 @@ with sync_playwright() as p:
 
     page = context.new_page()
     page.goto(SOURCE_URL)
-    # page.wait_for_timeout(3000)
+    page.wait_for_timeout(3000)
 
     # send new batch message
     timestamp = datetime.now().strftime("%A, %B %d, %Y at %-I:%M %p")
