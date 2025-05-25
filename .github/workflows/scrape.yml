@@ -36,5 +36,11 @@ jobs:
           pip install -r requirements.txt
           playwright install chromium
 
+      - name: 'Rebuild Cookies File from Secret'
+        run: |
+          echo "$LINKEDIN_COOKIES_B64" | base64 --decode > linkedin_cookies.json
+        env:
+          LINKEDIN_COOKIES_B64: ${{secrets.LINKEDIN_COOKIES_B64}}
+
       - name: Run Scraper
         run: python app.py || exit 1

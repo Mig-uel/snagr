@@ -2,3 +2,5 @@ venv/
 .env
 *.csv
 __pycache__/
+linkedin_cookies.json
+linkedin_cookies.b64
