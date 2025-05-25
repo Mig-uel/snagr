@@ -23,7 +23,7 @@ existing_links = get_existing_job_links()
 
 
 with sync_playwright() as p:
-    browser = p.chromium.launch(headless=False)
+    browser = p.chromium.launch()
     context = browser.new_context()
 
     # Load saved cookies
