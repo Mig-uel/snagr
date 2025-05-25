@@ -5,25 +5,18 @@ from datetime import datetime
 from playwright.sync_api import sync_playwright
 
 from utils.blacklisted_companies import blacklisted
-from utils.constants import SOURCE_URL
+from utils.constants import HEADLESS, SOURCE_URL
 from utils.existing_links import get_existing_job_links
 from utils.normalize_link import normalize_link
 from utils.supabase_client import get_supabase
 from utils.telegram_send_message import send_telegram_message
 
-# send new batch message
-timestamp = datetime.now().strftime("%A, %B %d, %Y at %-I:%M %p")
-send_telegram_message(
-    message=f"<code>{timestamp}</code>\n🟢 <b>Starting new job scraping batch...</b>"
-)
-
 supabase = get_supabase()
 
 existing_links = get_existing_job_links()
 
-
 with sync_playwright() as p:
-    browser = p.chromium.launch()
+    browser = p.chromium.launch(headless=HEADLESS)
     context = browser.new_context()
 
     # Load saved cookies
@@ -34,6 +27,12 @@ with sync_playwright() as p:
     page = context.new_page()
     page.goto(SOURCE_URL)
     page.wait_for_timeout(3000)
+
+    # send new batch message
+    timestamp = datetime.now().strftime("%A, %B %d, %Y at %-I:%M %p")
+    send_telegram_message(
+        message=f"<code>{timestamp}</code>\n🟢 <b>Starting new job scraping batch...</b>"
+    )
 
     # TODO: work on detecting cookie expiration
     # if "login" in page.url:
