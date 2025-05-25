@@ -14,7 +14,7 @@ from utils.telegram_send_message import send_telegram_message
 # send new batch message
 timestamp = datetime.now().strftime("%A, %B %d, %Y at %-I:%M %p")
 send_telegram_message(
-    message=f"<code>{timestamp}</code>\n🤖 <b>Starting new job scraping batch...</b>"
+    message=f"<code>{timestamp}</code>\n🟢 <b>Starting new job scraping batch...</b>"
 )
 
 supabase = get_supabase()
@@ -77,7 +77,7 @@ with sync_playwright() as p:
             job_cards = page.locator(".job-card-container").all()
             total_jobs += len(job_cards)
 
-            send_telegram_message(f"<b>Page #{page_num}</b>")
+            send_telegram_message(f"🔵 <b>Page #{page_num}</b>")
 
             for job in job_cards:
                 try:
@@ -165,11 +165,11 @@ with sync_playwright() as p:
         if jobs_list:
             supabase.table("jobs").insert(jobs_list).execute()
             send_telegram_message(
-                f"✅ <b>Scraper finished!</b>\n\nTotal Jobs Found: {total_jobs}\nJobs Collected: {len(jobs_list)}\nJobs Skipped: {skipped_links}\nBlacklisted Jobs: {blacklisted_links}"
+                f"🟢 <b>Scraper finished!</b>\n\nTotal Jobs Found: {total_jobs}\nJobs Collected: {len(jobs_list)}\nJobs Skipped: {skipped_links}\nBlacklisted Jobs: {blacklisted_links}"
             )
         else:
             send_telegram_message(
-                f"ℹ️ No new jobs to insert.\nTotal Jobs Found: {total_jobs}"
+                f"ℹ️ <b>No new jobs to insert.</b>\nTotal Jobs Found: {total_jobs}"
             )
     except Exception as e:
         send_telegram_message(f"⚠️ <b>Supabase insertion failed:</b>\n<code>{e}</code>")
