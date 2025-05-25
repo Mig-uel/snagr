@@ -26,12 +26,12 @@ with sync_playwright() as p:
 
     page = context.new_page()
     page.goto(SOURCE_URL)
-    page.wait_for_timeout(3000)
+    # page.wait_for_timeout(3000)
 
     # send new batch message
     timestamp = datetime.now().strftime("%A, %B %d, %Y at %-I:%M %p")
     send_telegram_message(
-        message=f"<code>{timestamp}</code>\n🟢 <b>Starting new job scraping batch...</b>"
+        message=f"<code>{timestamp}</code>\n🟢 | <b>Starting new job scraping batch...</b>"
     )
 
     # TODO: work on detecting cookie expiration
@@ -76,7 +76,7 @@ with sync_playwright() as p:
             job_cards = page.locator(".job-card-container").all()
             total_jobs += len(job_cards)
 
-            send_telegram_message(f"🔵 <b>Page #{page_num}</b>")
+            send_telegram_message(f"🔵 | <b>Page #{page_num}</b>")
 
             for job in job_cards:
                 try:
@@ -89,7 +89,7 @@ with sync_playwright() as p:
                     if company.strip().lower() in blacklisted:
                         blacklisted_links += 1
                         send_telegram_message(
-                            message=f"🚫 Skipped blacklisted company: <b>{company}</b>"
+                            message=f"🚫 | Skipped blacklisted company: <b>{company}</b>"
                         )
                         continue
 
@@ -102,11 +102,11 @@ with sync_playwright() as p:
                     # skip if link already in db or seen
                     if parsed_link in existing_links:
                         skipped_links += 1
-                        print("🚫 Skipped job, already in database!")
+                        print("🚫 | Skipped job, already in database!")
                         continue
                     if parsed_link in seen_links:
                         skipped_links += 1
-                        print("🚫 Skipped job, already seen!")
+                        print("🚫 | Skipped job, already seen!")
                         continue
 
                     location = job.locator(
@@ -139,7 +139,7 @@ with sync_playwright() as p:
                     time.sleep(0.2)
 
                 except Exception as e:
-                    print(f"⚠️ <b>Skipping job due to error:</b>\n<code>{e}</code>")
+                    print(f"⚠️ | <b>Skipping job due to error:</b>\n<code>{e}</code>")
 
             # find next button
             next_btn = page.locator('button[aria-label="View next page"]')
@@ -149,10 +149,10 @@ with sync_playwright() as p:
                 page.wait_for_timeout(2000)
                 page_num += 1
             else:
-                print("✅ Reached last page.")
+                print("✅ | Reached last page.")
                 break
         except Exception as e:
-            send_telegram_message(f"⚠️ <b>Scraper failed:</b>\n<code>{e}</code>")
+            send_telegram_message(f"⚠️ | <b>Scraper failed:</b>\n<code>{e}</code>")
             context.close()
             browser.close()
             raise
@@ -164,11 +164,13 @@ with sync_playwright() as p:
         if jobs_list:
             supabase.table("jobs").insert(jobs_list).execute()
             send_telegram_message(
-                f"🟢 <b>Scraper finished!</b>\n\nTotal Jobs Found: {total_jobs}\nJobs Collected: {len(jobs_list)}\nJobs Skipped: {skipped_links}\nBlacklisted Jobs: {blacklisted_links}"
+                f"🟢 | <b>Scraper finished!</b>\n\nTotal Jobs Found: {total_jobs}\nJobs Collected: {len(jobs_list)}\nJobs Skipped: {skipped_links}\nBlacklisted Jobs: {blacklisted_links}"
             )
         else:
             send_telegram_message(
-                f"ℹ️ <b>No new jobs to insert.</b>\nTotal Jobs Found: {total_jobs}"
+                f"⚪ | <b>No new jobs to insert.</b>\nTotal Jobs Found: {total_jobs}"
             )
     except Exception as e:
-        send_telegram_message(f"⚠️ <b>Supabase insertion failed:</b>\n<code>{e}</code>")
+        send_telegram_message(
+            f"⚠️ | <b>Supabase insertion failed:</b>\n<code>{e}</code>"
+        )
