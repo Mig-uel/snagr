@@ -112,15 +112,33 @@ with sync_playwright() as p:
                     location = job.locator(
                         ".artdeco-entity-lockup__caption"
                     ).first.inner_text()
-                    title_locator = job.locator("strong").first
+                    ## title_locator = job.locator("strong").first
                     # try:
                     #     title_locator.wait_for(
                     #         timeout=3000
                     #     )  # wait up to 3s for it to appear
-                    title = title_locator.inner_text(timeout=2000)
+                    ## title = title_locator.inner_text(timeout=2000)
                     # except Exception as e:
                     #     print(f"⚠️ Title not found or timeout: {e}")
                     #     continue
+
+                    try:
+                        title_locator = job.locator("strong").first
+                        if title_locator.is_visible():
+                            title = title_locator.inner_text(timeout=3000)
+                        else:
+                            print("❓ Unexpected job format. Dumping HTML:")
+                            html_dump = job.inner_html()
+                            with open(
+                                "unexpected_jobs.html", "a", encoding="utf-8"
+                            ) as f:
+                                f.write(
+                                    f"\n<!-- Job Dump Start -->\n{html_dump}\n<!-- Job Dump End -->\n\n"
+                                )
+                            raise Exception("Title not visible")
+                    except Exception as e:
+                        print(f"⚠️ Skipping job due to missing title: {e}")
+                        continue
 
                     jobs_list.append(
                         {
