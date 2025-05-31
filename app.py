@@ -88,9 +88,8 @@ with sync_playwright() as p:
                     # skip blacklisted companies
                     if company.strip().lower() in blacklisted:
                         blacklisted_links += 1
-                        send_telegram_message(
-                            message=f"🚫 | Skipped blacklisted company: <b>{company}</b>"
-                        )
+                        print(f"🚫 | Skipped blacklisted company: {company}")
+                        # send_telegram_message(message=f"🚫 | Skipped blacklisted company: <b>{company}</b>")
                         continue
 
                     # extract job link and normalize
