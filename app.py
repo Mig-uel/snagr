@@ -92,6 +92,28 @@ with sync_playwright() as p:
                         # send_telegram_message(message=f"🚫 | Skipped blacklisted company: <b>{company}</b>")
                         continue
 
+                    title_locator = job.locator("strong").first
+                    # try:
+                    #     title_locator.wait_for(
+                    #         timeout=3000
+                    #     )  # wait up to 3s for it to appear
+                    title = title_locator.inner_text(timeout=2000)
+                    # except Exception as e:
+                    #     print(f"⚠️ Title not found or timeout: {e}")
+                    #     continue
+
+                    # TODO: optimize conditional
+                    if (
+                        "lead" in title.strip().lower()
+                        or "senior" in title.strip().lower()
+                        or "sr" in title.strip().lower()
+                        or "staff" in title.strip().lower()
+                        or "principal" in title.strip().lower()
+                    ):
+                        skipped_links += 1
+                        print("🚫 | Skipped job, contains unwanted terms!")
+                        continue
+
                     # extract job link and normalize
                     raw_link = job.locator("a").first.get_attribute("href")
                     if not raw_link:
@@ -111,15 +133,6 @@ with sync_playwright() as p:
                     location = job.locator(
                         ".artdeco-entity-lockup__caption"
                     ).first.inner_text()
-                    title_locator = job.locator("strong").first
-                    # try:
-                    #     title_locator.wait_for(
-                    #         timeout=3000
-                    #     )  # wait up to 3s for it to appear
-                    title = title_locator.inner_text(timeout=2000)
-                    # except Exception as e:
-                    #     print(f"⚠️ Title not found or timeout: {e}")
-                    #     continue
 
                     jobs_list.append(
                         {
