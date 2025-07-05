@@ -1,9 +1,12 @@
 import os
 from datetime import datetime, timedelta, timezone
 
+from dotenv import load_dotenv
 from supabase import Client, create_client
 
 from utils.telegram_send_message import send_telegram_message
+
+load_dotenv()
 
 url = os.getenv("SUPABASE_URL")
 key = os.getenv("SUPABASE_KEY")
