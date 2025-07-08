@@ -1,4 +1,6 @@
 import json
+import os
+import sys
 import time
 from datetime import datetime
 from pathlib import Path
@@ -8,7 +10,17 @@ from playwright.sync_api import sync_playwright
 from telegram import send_telegram_message
 from utils import BLACKLISTED_COMPANIES, IS_HEADLESS, SOURCE_URL, normalize_job_link
 
-parent_dir = Path(__file__).resolve().parent  # parent dir (scraper)
+PID_FILE = "/tmp/scraper.pid"
+
+# prevent multiple instances
+if os.path.exists(PID_FILE):
+    print("⛔ Scraper already running")
+    sys.exit(1)
+
+with open(PID_FILE, "w") as f:
+    f.write(str(os.getpid()))
+
+PARENT_DIR = Path(__file__).resolve().parent  # parent dir (scraper)
 
 supabase = get_supabase()
 existing_links = get_existing_job_links()  # fetch existing links from db
@@ -18,7 +30,7 @@ with sync_playwright() as p:
     context = browser.new_context()
 
     # load saved cookies
-    with open(Path.joinpath(parent_dir, "linkedin_cookies.json"), "r") as f:
+    with open(Path.joinpath(PARENT_DIR, "linkedin_cookies.json"), "r") as f:
         cookies = json.load(f)
         context.add_cookies(cookies)
 
@@ -187,3 +199,5 @@ with sync_playwright() as p:
         send_telegram_message(
             f"⚠️ | <b>Supabase insertion failed:</b>\n<code>{e}</code>"
         )
+    finally:
+        os.remove(PID_FILE)
