@@ -5,3 +5,4 @@ __pycache__/
 linkedin_cookies.json
 linkedin_cookies.b64
 *.sh
+/tmp
