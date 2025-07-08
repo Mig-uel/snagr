@@ -46,7 +46,7 @@ def handle_run(message):
         logger(message=message, user=user, extra="TRIGGERED")
 
         subprocess.run(
-            [str(parent_dir / "run_scraper.sh")],
+            [str(parent_dir / "scripts/run_scraper.sh")],
             stdout=subprocess.DEVNULL,
             stderr=subprocess.DEVNULL,
             timeout=900,
