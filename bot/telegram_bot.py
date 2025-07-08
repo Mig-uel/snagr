@@ -45,7 +45,11 @@ def handle_run(message):
     try:
         logger(message=message, user=user, extra="TRIGGERED")
 
-        subprocess.run([Path.joinpath(parent_dir, "run_scraper.sh")])
+        subprocess.run(
+            [Path.joinpath(parent_dir, "run_scraper.sh")],
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.DEVNULL,
+        )
 
         logger(message=message, user=user, extra="FINISHED")
     except subprocess.TimeoutExpired:
