@@ -82,7 +82,7 @@ def handle_help(message):
 
     bot.send_message(
         message.chat.id,
-        "<b>❓| Help</b>\n\n<code>/run - Run the scraper</code>",
+        "<b>❓| Help</b>\n\n<code>/run - Run the scraper\n/status - Check status of the scraper</code>",
         parse_mode="HTML",
     )
 
