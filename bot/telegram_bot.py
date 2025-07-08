@@ -1,3 +1,4 @@
+import os
 import subprocess
 from pathlib import Path
 
@@ -9,33 +10,39 @@ parent_dir = Path(__file__).resolve().parent.parent
 
 bot = telebot.TeleBot(TELEGRAM_BOT_TOKEN)
 
-active = False
+
+# check if an instance of a scraper is already active
+def is_scraper_running():
+    if os.path.exists("/tmp/scraper.pid"):
+        try:
+            with open("/tmp/scraper.pid", "r") as f:
+                pid = int(f.read().strip())
+            os.kill(pid, 0)  # Check if process exists
+        except (ValueError, ProcessLookupError):
+            return False  # PID file is stale
+        return True
+    return False
 
 
 # /run
 @bot.message_handler(commands=["run"])
 def handle_run(message):
-    global active
-
     # User
     user = message.from_user
+
+    if is_scraper_running():
+        logger(message=message, user=user, extra="ALREADY ACTIVE")
+        bot.send_message(
+            message.chat.id, "<b>⚠️ | Scraper is already active</b>", parse_mode="HTML"
+        )
+        return
 
     if user.id != int(TELEGRAM_CHAT_ID):
         logger(message=message, user=user, extra="UNAUTHORIZED")
         bot.send_message(message.chat.id, "<b>⛔ | Unauthorized</b>", parse_mode="HTML")
         return
 
-    # TODO => SEARCH FOR ACTIVE PROCESS
-    if active:
-        logger(message=message, user=user, extra="ALREADY ACTIVE")
-        bot.send_message(
-            message.chat.id, "<b>⚠️ | Already running</b>", parse_mode="HTML"
-        )
-        return
-
     try:
-        active = True
-
         logger(message=message, user=user, extra="TRIGGERED")
 
         subprocess.run([Path.joinpath(parent_dir, "run_scraper.sh")])
@@ -58,8 +65,6 @@ def handle_run(message):
             f"<b>⚠️ | Error</b>\n\n<code>{e}</code>",
             parse_mode="HTML",
         )
-    finally:
-        active = False
 
 
 # /help
@@ -77,18 +82,17 @@ def handle_help(message):
     )
 
 
+# /status
 @bot.message_handler(commands=["status"])
 def handle_status(message):
-    global active
-
     user = message.from_user
 
-    logger(message=message, user=user, extra=active)
+    logger(message=message, user=user, extra=is_scraper_running())
 
-    if active:
+    if is_scraper_running():
         bot.send_message(
             message.chat.id,
-            "<b>ℹ️ | Status</b>\n\n<code>Running</code>",
+            "<b>ℹ️ | Status</b>\n\n<code>Active</code>",
             parse_mode="HTML",
         )
     else:
