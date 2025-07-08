@@ -46,9 +46,10 @@ def handle_run(message):
         logger(message=message, user=user, extra="TRIGGERED")
 
         subprocess.run(
-            [Path.joinpath(parent_dir, "run_scraper.sh")],
+            [str(parent_dir / "run_scraper.sh")],
             stdout=subprocess.DEVNULL,
             stderr=subprocess.DEVNULL,
+            timeout=900,
         )
 
         logger(message=message, user=user, extra="FINISHED")
@@ -96,13 +97,13 @@ def handle_status(message):
     if is_scraper_running():
         bot.send_message(
             message.chat.id,
-            "<b>ℹ️ | Status</b>\n\n<code>Active</code>",
+            "<b>🟢 | Status</b>\n\n<code>Active</code>",
             parse_mode="HTML",
         )
     else:
         bot.send_message(
             message.chat.id,
-            "<b>ℹ️ | Status</b>\n\n<code>Idle</code>",
+            "<b>⚪ | Status</b>\n\n<code>Idle</code>",
             parse_mode="HTML",
         )
 
