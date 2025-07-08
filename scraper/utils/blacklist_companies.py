@@ -7,7 +7,7 @@ companies = [
     "Brooksource",
     "Dice",
     "Jobs via Dice",
-    "Jobot"
+    "Jobot",
 ]
 
-blacklisted = {c.lower() for c in companies}
+BLACKLISTED_COMPANIES = {c.lower() for c in companies}

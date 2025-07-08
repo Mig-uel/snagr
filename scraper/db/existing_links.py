@@ -1,4 +1,4 @@
-from utils.supabase_client import get_supabase
+from .supabase import get_supabase
 
 supabase = get_supabase()
 

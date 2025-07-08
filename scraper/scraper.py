@@ -3,27 +3,21 @@ import time
 from datetime import datetime
 from pathlib import Path
 
+from db import get_existing_job_links, get_supabase
 from playwright.sync_api import sync_playwright
+from telegram import send_telegram_message
+from utils import BLACKLISTED_COMPANIES, IS_HEADLESS, SOURCE_URL, normalize_job_link
 
-from utils.blacklisted_companies import blacklisted
-from utils.constants import HEADLESS, SOURCE_URL
-from utils.existing_links import get_existing_job_links
-from utils.normalize_link import normalize_link
-from utils.supabase_client import get_supabase
-from utils.telegram_send_message import send_telegram_message
-
-parent_dir = Path(__file__).resolve().parent
+parent_dir = Path(__file__).resolve().parent  # parent dir (scraper)
 
 supabase = get_supabase()
-
-existing_links = get_existing_job_links()
-
+existing_links = get_existing_job_links()  # fetch existing links from db
 
 with sync_playwright() as p:
-    browser = p.chromium.launch(headless=HEADLESS)
+    browser = p.chromium.launch(headless=IS_HEADLESS)
     context = browser.new_context()
 
-    # Load saved cookies
+    # load saved cookies
     with open(Path.joinpath(parent_dir, "linkedin_cookies.json"), "r") as f:
         cookies = json.load(f)
         context.add_cookies(cookies)
@@ -80,6 +74,7 @@ with sync_playwright() as p:
                 page.wait_for_timeout(3000)
 
             job_cards = page.locator(".job-card-container").all()
+
             total_jobs += len(job_cards)
 
             send_telegram_message(f"🔵 | <b>Page #{page_num}</b>")
@@ -92,7 +87,7 @@ with sync_playwright() as p:
                     ).first.inner_text()
 
                     # skip blacklisted companies
-                    if company.strip().lower() in blacklisted:
+                    if company.strip().lower() in BLACKLISTED_COMPANIES:
                         blacklisted_links += 1
                         print(f"🚫 | Skipped blacklisted company: {company}")
                         # send_telegram_message(message=f"🚫 | Skipped blacklisted company: <b>{company}</b>")
@@ -124,7 +119,7 @@ with sync_playwright() as p:
                     raw_link = job.locator("a").first.get_attribute("href")
                     if not raw_link:
                         continue
-                    parsed_link = normalize_link(f"https://linkedin.com{raw_link}")
+                    parsed_link = normalize_job_link(f"https://linkedin.com{raw_link}")
 
                     # skip if link already in db or seen
                     if parsed_link in existing_links:
