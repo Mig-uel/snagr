@@ -19,6 +19,6 @@ try:
 
     deleted = len(res.data)
 
-    send_telegram_message(f"<b>🗑️ | Cleanup</b>\n\nDeleted{deleted} old job(s)")
+    send_telegram_message(f"<b>🗑️ | Cleanup</b>\n\nDeleted {deleted} old job(s)")
 except Exception as e:
     send_telegram_message(f"<b>⚠️ | Failed to clean up jobs</b>\n\n<code>{e}</code>")
