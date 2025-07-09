@@ -53,18 +53,18 @@ Snagr is a Python-based web scraping tool designed to extract job postings from 
 3. Install the required dependencies:
 
 ```bash
-   pip install -r requirements.txt
+  pip install -r requirements.txt
 ```
 
 ```bash
-python -m venv venv
-source venv/bin/activate  # On Windows use `venv\Scripts\activate`
+  python -m venv venv
+  source venv/bin/activate  # On Windows use `venv\Scripts\activate`
 ```
 
 4. Install the required dependencies:
 
 ```bash
-   pip install -r requirements.txt
+  pip install -r requirements.txt
 ```
 
 5. Set up environment variables:
