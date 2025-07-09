@@ -7,6 +7,7 @@ WHITELIST_JOB_TITLE_KEYWORDS = [
     "front-end",
     "backend",
     "back-end",
+    "back end",
     "full stack",
     "full-stack",
     "react",
@@ -22,6 +23,8 @@ WHITELIST_JOB_TITLE_KEYWORDS = [
     "entry-level",
     "entry level",
     "mid",
+    "web",
+    "angular",
 ]
 
 # edit this to exclude a job based on title keyword(s)
@@ -54,4 +57,9 @@ BLACKLIST_JOB_TITLE_KEYWORDS = [
     "desktop support",
     "help desk",
     "windows server",
+    "lead",
+    "senior",
+    "sr",
+    "staff",
+    "principal",
 ]
