@@ -1,27 +1,14 @@
-import os
 import subprocess
 from pathlib import Path
 
 import telebot
 from config import TELEGRAM_BOT_TOKEN, TELEGRAM_CHAT_ID
+from is_scraper_running import is_scraper_running
 from logger import init_log, logger
 
 parent_dir = Path(__file__).resolve().parent.parent
 
 bot = telebot.TeleBot(TELEGRAM_BOT_TOKEN)
-
-
-# check if an instance of a scraper is already active
-def is_scraper_running():
-    if os.path.exists("/tmp/scraper.pid"):
-        try:
-            with open("/tmp/scraper.pid", "r") as f:
-                pid = int(f.read().strip())
-            os.kill(pid, 0)  # Check if process exists
-        except (ValueError, ProcessLookupError):
-            return False  # PID file is stale
-        return True
-    return False
 
 
 # /run
@@ -108,6 +95,25 @@ def handle_status(message):
         )
 
 
+@bot.message_handler(commands=["start"])
+def handle_start(message):
+    user = message.from_user
+    print(user)
+
+    # args = message.text.split()
+
+    # if len(args) > 1:
+    #     payload = args[1]
+    #     bot.send_message(message.chat.id, f"You came from: {payload}")
+    # else:
+    bot.send_message(
+        message.chat.id,
+        "<b>🤖 | Welcome</b>\n\nSnagr is a LinkedIn job scraper that runs every 30 minutes\n\nUse /help to get started",
+        parse_mode="HTML",
+    )
+
+
 if __name__ == "__main__":
     init_log()
+    bot.polling()
     bot.polling()
