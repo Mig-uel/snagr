@@ -9,7 +9,13 @@ from pathlib import Path
 from db import get_existing_job_links, get_supabase
 from playwright.sync_api import sync_playwright
 from telegram import send_telegram_message
-from utils import BLACKLISTED_COMPANIES, IS_HEADLESS, SOURCE_URL, normalize_job_link
+from utils import (
+    BLACKLISTED_COMPANIES,
+    IS_HEADLESS,
+    SOURCE_URL,
+    is_valid_job_title,
+    normalize_job_link,
+)
 
 try:
     PID_FILE = "/tmp/scraper.pid"
@@ -121,8 +127,7 @@ try:
                         # skip blacklisted companies
                         if company.strip().lower() in BLACKLISTED_COMPANIES:
                             blacklisted_links += 1
-                            print(f"🚫 | Skipped blacklisted company: {company}")
-                            # send_telegram_message(message=f"🚫 | Skipped blacklisted company: <b>{company}</b>")
+                            print(f"🚫 | Skip (blacklisted company: {company})")
                             continue
 
                         title_locator = job.locator("strong").first
@@ -135,16 +140,12 @@ try:
                         #     print(f"⚠️ Title not found or timeout: {e}")
                         #     continue
 
-                        # TODO: optimize conditional
-                        if (
-                            "lead" in title.strip().lower()
-                            or "senior" in title.strip().lower()
-                            or "sr" in title.strip().lower()
-                            or "staff" in title.strip().lower()
-                            or "principal" in title.strip().lower()
-                        ):
+                        if is_valid_job_title(title=title):
+                            pass
+                        else:
                             skipped_links += 1
-                            print("🚫 | Skipped job, contains unwanted terms!")
+                            print("🚫 | Skip (title keywords not found in title)")
+                            print(f"⛔ | {title}")
                             continue
 
                         # extract job link and normalize
@@ -158,11 +159,11 @@ try:
                         # skip if link already in db or seen
                         if parsed_link in existing_links:
                             skipped_links += 1
-                            print("🚫 | Skipped job, already in database!")
+                            print("🚫 | Skip (job already in database)")
                             continue
                         if parsed_link in seen_links:
                             skipped_links += 1
-                            print("🚫 | Skipped job, already seen!")
+                            print("🚫 | Skip (job already parsed)")
                             continue
 
                         location = job.locator(
