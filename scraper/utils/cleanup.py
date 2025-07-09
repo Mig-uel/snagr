@@ -4,7 +4,7 @@ from datetime import datetime, timedelta, timezone
 from dotenv import load_dotenv
 from supabase import Client, create_client
 
-from utils.telegram_send_message import send_telegram_message
+from ..telegram import send_telegram_message
 
 load_dotenv()
 
@@ -19,6 +19,6 @@ try:
 
     deleted = len(res.data)
 
-    send_telegram_message(f"🗑️ Deleted {deleted} old job(s).")
+    send_telegram_message(f"<b>🗑️ | Cleanup/b>\n\nDeleted{deleted} old job(s)")
 except Exception as e:
-    send_telegram_message(f"⚠️ Failed to clean up jobs:\n<code>{e}</code>")
+    send_telegram_message(f"<b>⚠️ | Failed to clean up jobs</b>\n\n<code>{e}</code>")
