@@ -63,3 +63,10 @@ BLACKLIST_JOB_TITLE_KEYWORDS = [
     "staff",
     "principal",
 ]
+
+
+def is_valid_job_title(title: str) -> bool:
+    title = title.strip().lower()
+    return any(kw in title for kw in WHITELIST_JOB_TITLE_KEYWORDS) and not any(
+        kw in title for kw in BLACKLIST_JOB_TITLE_KEYWORDS
+    )
