@@ -1,4 +1,5 @@
 import json
+import math
 import os
 import sys
 import time
@@ -45,6 +46,24 @@ try:
 
         send_telegram_message(
             message=f"<code>{timestamp}</code>\n<b>⏳ | Running scraper</b>"
+        )
+
+        # get total search results
+        results_count_text = (
+            page.locator(".jobs-search-results-list__subtitle")
+            .first.inner_text()
+            .split(" ")
+        )[0].replace(",", "")
+        results_count = int(results_count_text)
+
+        # jobs per page
+        jobs_per_page = 25
+
+        # totals results / jobs per page = total pages (floored)
+        total_pages = math.ceil(results_count / jobs_per_page)
+
+        send_telegram_message(
+            message=f"<b>✨ | Stats</b>\n\nTotal Search Results: {results_count}\nEstimated Total Pages: {total_pages}"
         )
 
         # TODO: work on detecting cookie expiration
