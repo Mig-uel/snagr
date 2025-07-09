@@ -89,6 +89,8 @@ try:
         blacklisted_links = 0
 
         while True:
+            send_telegram_message(f"🔵 | <b>Page #{page_num}</b>")
+
             try:
                 previous_count = 0
                 while True:
@@ -114,8 +116,6 @@ try:
                 job_cards = page.locator(".job-card-container").all()
 
                 total_jobs += len(job_cards)
-
-                send_telegram_message(f"🔵 | <b>Page #{page_num}</b>")
 
                 for job in job_cards:
                     try:
