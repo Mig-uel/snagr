@@ -38,10 +38,10 @@ Snagr is a Python-based web scraping tool designed to extract job postings from 
 
 1. Clone the repository:
 
-   ```bash
+```bash
    git clone https://github.com/mig-uel/snagr.git
    cd snagr
-   ```
+```
 
 2. Create a virtual environment and activate it:
 
@@ -52,38 +52,39 @@ Snagr is a Python-based web scraping tool designed to extract job postings from 
 
 3. Install the required dependencies:
 
-   ```bash
+```bash
    pip install -r requirements.txt
-   ```
+```
 
-   ```bash
-   python -m venv venv
-   source venv/bin/activate  # On Windows use `venv\Scripts\activate`
-   ```
+```bash
+python -m venv venv
+source venv/bin/activate  # On Windows use `venv\Scripts\activate`
+```
 
 4. Install the required dependencies:
 
-   ```bash
+```bash
    pip install -r requirements.txt
-   ```
+```
 
 5. Set up environment variables:
 
-   - Create a `.env` file in the root directory and add your credentials as shown in the `.env.example` file.
+- Create a `.env` file in the root directory and add your credentials as shown in the `.env.example` file.
 
 6. Edit the source URL in `utils/constants.py` to match your LinkedIn job search URL.
 
-   ```python
+```python
    # utils/constants.py
    LINKEDIN_JOBS_URL = "https://www.linkedin.com/jobs/search/?f_TPR=<SET_TIME_RANGE>&keywords=<YOUR_JOB_TITLE>&geoId=<YOUR_LOCATION_ID>"
-   ```
+```
 
-   Replace `YOUR_JOB_TITLE` and `YOUR_LOCATION` with your desired job title and location.
+Replace `YOUR_JOB_TITLE` and `YOUR_LOCATION` with your desired job title and location.
 
 7. Run the application:
-   ```bash
+
+```bash
    python app.py
-   ```
+```
 
 ### Telegram Bot Setup
 
