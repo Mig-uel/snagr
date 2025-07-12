@@ -5,6 +5,7 @@ WHITELIST_JOB_TITLE_KEYWORDS = [
     "web developer",
     "frontend",
     "front-end",
+    "front end",
     "backend",
     "back-end",
     "back end",
@@ -25,6 +26,9 @@ WHITELIST_JOB_TITLE_KEYWORDS = [
     "mid",
     "web",
     "angular",
+    "mean",
+    "mern",
+    "early",
 ]
 
 # edit this to exclude a job based on title keyword(s)
@@ -62,6 +66,7 @@ BLACKLIST_JOB_TITLE_KEYWORDS = [
     "sr",
     "staff",
     "principal",
+    "machine learning",
 ]
 
 
