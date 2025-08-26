@@ -56,10 +56,16 @@ try:
 
         # get total search results
         results_count_text = (
-            page.locator(".jobs-search-results-list__subtitle")
-            .first.inner_text()
-            .split(" ")
-        )[0].replace(",", "")
+            (
+                page.locator(".jobs-search-results-list__text")
+                .nth(1)
+                .inner_text()
+                .split(" ")
+            )[0]
+            .replace(",", "")
+            .replace("+", "")
+        )
+        print(results_count_text)
         results_count = int(results_count_text)
 
         # jobs per page
