@@ -38,8 +38,8 @@ async def main():
         # Get parent directory (scraper)
         parent_dir = Path(__file__).resolve().parent 
 
-        # Get cookies file path
-        cookies_file_path = Path.joinpath(parent_dir, "linkedin_cookies.json")
+        # Get storage state file path
+        storage_state_file_path = Path.joinpath(parent_dir, "linkedin_storage.json")
 
         # Check if running on Raspberry Pi
         IS_RPI = os.uname().machine.startswith("arm") or os.uname().machine.startswith("aarch64")
@@ -52,12 +52,8 @@ async def main():
                 browser = await p.chromium.launch(headless=IS_HEADLESS)
             
             # Create new browser context with specified viewport
-            context = await browser.new_context(viewport={"width": 1400, "height": 3500})
-
-            # Add cookies to context
-            with open(cookies_file_path, "r") as f:
-                cookies = json.load(f)
-                await context.add_cookies(cookies)
+            context = await browser.new_context(viewport={"width": 1400, "height": 3500},
+                                                storage_state=str(storage_state_file_path))
             
             page = await context.new_page()
             await page.goto(SOURCE_URL)
