@@ -172,14 +172,28 @@ async def main():
             await context.close()
             await browser.close()
 
+            # Insert jobs into Supabase
+            try:
+                if jobs:
+                    supabase.table("jobs").insert(jobs).execute()
+                    send_telegram_message(
+                        f"🟢 | <b>Scraper finished!</b>\n\nTotal Jobs Found: {total_jobs}\nJobs Collected: {len(jobs)}\nJobs Skipped: {skipped_links}\nBlacklisted Jobs: {blacklisted_links}"
+                    )
+                else:
+                    send_telegram_message(
+                        f"⚪ | <b>No new jobs to insert.</b>\nTotal Jobs Found: {total_jobs}"
+                    )
+            except Exception as e:
+                    send_telegram_message(
+                        f"⚠️ | <b>Supabase insertion failed:</b>\n<code>{e}</code>"
+                    )
+
     except Exception as e:
         logging.critical(f"⚠️ | Error initializing scraper: {e}")
         return
-
-asyncio.run(main())
-
-
-
+    
+if __name__ == "__main__":
+    asyncio.run(main())
 
 
 
@@ -222,81 +236,6 @@ asyncio.run(main())
 
 
 #         while True:
-#             send_telegram_message(f"🔵 | <b>Page #{page_num}</b>")
-
-#                 for job in job_cards:
-#                     try:
-#                         # extract company name
-#                         company = job.locator(
-#                             ".artdeco-entity-lockup__subtitle"
-#                         ).first.inner_text()
-
-#                         # skip blacklisted companies
-#                         if company.strip().lower() in BLACKLISTED_COMPANIES:
-#                             blacklisted_links += 1
-#                             print(f"🚫 | Skip (blacklisted company: {company})")
-#                             continue
-
-#                         title_locator = job.locator("strong").first
-#                         # try:
-#                         #     title_locator.wait_for(
-#                         #         timeout=3000
-#                         #     )  # wait up to 3s for it to appear
-#                         title = title_locator.inner_text(timeout=2000)
-#                         # except Exception as e:
-#                         #     print(f"⚠️ Title not found or timeout: {e}")
-#                         #     continue
-
-#                         if is_valid_job_title(title=title):
-#                             pass
-#                         else:
-#                             skipped_links += 1
-#                             print("🚫 | Skip (title keywords not found in title)")
-#                             print(f"⛔ | {title}")
-#                             continue
-
-#                         # extract job link and normalize
-#                         raw_link = job.locator("a").first.get_attribute("href")
-#                         if not raw_link:
-#                             continue
-#                         parsed_link = normalize_job_link(
-#                             f"https://linkedin.com{raw_link}"
-#                         )
-
-#                         # skip if link already in db or seen
-#                         if parsed_link in existing_links:
-#                             skipped_links += 1
-#                             print("🚫 | Skip (job already in database)")
-#                             continue
-#                         if parsed_link in seen_links:
-#                             skipped_links += 1
-#                             print("🚫 | Skip (job already parsed)")
-#                             continue
-
-#                         location = job.locator(
-#                             ".artdeco-entity-lockup__caption"
-#                         ).first.inner_text()
-
-#                         jobs_list.append(
-#                             {
-#                                 "title": title,
-#                                 "company": company,
-#                                 "location": location,
-#                                 "job_link": parsed_link,
-#                             }
-#                         )
-
-#                         seen_links.add(parsed_link)
-
-#                         send_telegram_message(
-#                             title=title, company=company, href=parsed_link
-#                         )
-#                         time.sleep(0.2)
-
-#                     except Exception as e:
-#                         print(
-#                             f"⚠️ | <b>Skipping job due to error:</b>\n<code>{e}</code>"
-#                         )
 
 #                 # find next button
 #                 next_btn = page.locator('button[aria-label="View next page"]')
