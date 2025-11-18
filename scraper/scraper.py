@@ -60,6 +60,9 @@ async def main():
             page = await context.new_page()
             await page.goto(SOURCE_URL)
 
+            # Debug: print page title
+            print(await page.title())
+
             # Wait for specific element to load
             results_element = page.locator("small.jobs-search-results-list__text")
             results_text = await results_element.text_content()
