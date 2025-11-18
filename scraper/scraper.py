@@ -47,7 +47,8 @@ async def main():
         async with async_playwright() as p:
             if IS_RPI:
                 logger.info("Running on Raspberry Pi OS")
-                browser = await p.chromium.launch(executable_path="/usr/bin/chromium", headless=IS_HEADLESS)
+                browser = await p.chromium.launch(executable_path="/usr/lib/chromium/chrome",
+                            args=["--no-sandbox", "--disable-gpu"], headless=IS_HEADLESS)
             else:
                 browser = await p.chromium.launch(headless=IS_HEADLESS)
             context = await browser.new_context(viewport={"width": 1400, "height": 3500})
