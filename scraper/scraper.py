@@ -41,9 +41,12 @@ async def main():
         # Get cookies file path
         cookies_file_path = Path.joinpath(parent_dir, "linkedin_cookies.json")
 
+        # Get OS
+        IS_RPI = os.uname().machine.startswith("arm") or os.uname().machine.startswith("aarch64")
+
         async with async_playwright() as p:
-            # Temp fix for Raspberry Pi OS
-            if IS_HEADLESS:
+            if IS_RPI:
+                logger.info("Running on Raspberry Pi OS")
                 browser = await p.chromium.launch(executable_path="/usr/bin/chromium", headless=IS_HEADLESS)
             else:
                 browser = await p.chromium.launch(headless=IS_HEADLESS)
