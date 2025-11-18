@@ -53,10 +53,11 @@ async def main():
             
             # Create new browser context with specified viewport
             context = await browser.new_context(viewport={"width": 1400, "height": 3500},
-                                                storage_state=str(storage_state_file_path))
+                                                storage_state=str(storage_state_file_path),
+                                                user_agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36")
             
             page = await context.new_page()
-            await page.goto(SOURCE_URL)
+            await page.goto(SOURCE_URL, wait_until="domcontentloaded")
 
             # Wait for specific element to load
             results_element = page.locator("small.jobs-search-results-list__text")
