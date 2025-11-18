@@ -1,6 +1,6 @@
 import json
 import math
-from datetime import datetime
+from datetime import datetime, time
 from pathlib import Path
 import asyncio
 from playwright.async_api import async_playwright
@@ -119,6 +119,37 @@ async def main():
                             # Extract LinkedIn URL
                             raw_linkedin_url = await job.locator("a").first.get_attribute("href")
                             parsed_linkedin_url = normalize_job_link(raw_linkedin_url)
+
+                            # Skip if link already in database or seen
+                            if parsed_linkedin_url in existing_links:
+                                skipped_links += 1
+                                logging.info("Link Already in Database")
+                                continue
+                            if parsed_linkedin_url in seen_links:
+                                skipped_links += 1
+                                logging.info("Link Already Parsed")
+                                continue
+
+                            # Append job details to jobs list
+                            jobs.append(
+                                {
+                                    "title": title,
+                                    "company": company,
+                                    "location": None,
+                                    "job_link": parsed_linkedin_url,
+                                }
+                            )
+
+                            # Mark link as seen
+                            seen_links.add(parsed_linkedin_url)
+
+                            # Send Telegram message for new job
+                            send_telegram_message(
+                                title=title, company=company, href=parsed_linkedin_url
+                            )
+
+                            # Throttle requests
+                            await asyncio.sleep(.5)
 
 
                         except Exception as e:
