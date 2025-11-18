@@ -41,14 +41,13 @@ async def main():
         # Get cookies file path
         cookies_file_path = Path.joinpath(parent_dir, "linkedin_cookies.json")
 
-        # Get OS
+        # Check if running on Raspberry Pi
         IS_RPI = os.uname().machine.startswith("arm") or os.uname().machine.startswith("aarch64")
 
         async with async_playwright() as p:
             if IS_RPI:
                 logger.info("Running on Raspberry Pi OS")
-                browser = await p.chromium.launch(executable_path="/usr/lib/chromium/chromium",
-                            args=["--no-sandbox", "--disable-gpu"], headless=IS_HEADLESS)
+                browser = await p.chromium.launch(args=["--no-sandbox", "--disable-gpu"], headless=IS_HEADLESS)
             else:
                 browser = await p.chromium.launch(headless=IS_HEADLESS)
             
@@ -62,9 +61,6 @@ async def main():
             
             page = await context.new_page()
             await page.goto(SOURCE_URL)
-
-            # Debug: print page title
-            print(await page.title())
 
             # Wait for specific element to load
             results_element = page.locator("small.jobs-search-results-list__text")
