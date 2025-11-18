@@ -1,12 +1,14 @@
 import os
 import sys
+import logging
 
 """Prevents multiple instances of the scraper from running simultaneously."""
 
-PID_FILE = "/tmp/scraper.pid"
 def prevent_multiple_instances():
+    PID_FILE = "/tmp/scraper.pid"
+
     if os.path.exists(PID_FILE):
-        print("⛔ Scraper already running")
+        logging.critical("Instance Already Exists")
         sys.exit(1)
 
     with open(PID_FILE, "w") as f:
