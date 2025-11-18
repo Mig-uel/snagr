@@ -150,7 +150,7 @@ async def main():
                             )
 
                             # Throttle requests
-                            await asyncio.sleep(.5)
+                            await asyncio.sleep(.2)
                         except Exception as e:
                             logging.error(f"Error Extracting Job Details: {e}")
                             continue
