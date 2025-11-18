@@ -47,10 +47,12 @@ async def main():
         async with async_playwright() as p:
             if IS_RPI:
                 logger.info("Running on Raspberry Pi OS")
-                browser = await p.chromium.launch(executable_path="/usr/lib/chromium/chrome",
+                browser = await p.chromium.launch(executable_path="/usr/lib/chromium/chromium",
                             args=["--no-sandbox", "--disable-gpu"], headless=IS_HEADLESS)
             else:
                 browser = await p.chromium.launch(headless=IS_HEADLESS)
+            
+            # Create new browser context with specified viewport
             context = await browser.new_context(viewport={"width": 1400, "height": 3500})
 
             # Add cookies to context
