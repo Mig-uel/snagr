@@ -1,6 +1,7 @@
 import json
 import math
 from datetime import datetime
+import os
 from pathlib import Path
 import asyncio
 from playwright.async_api import async_playwright
@@ -183,8 +184,7 @@ async def main():
         return
     finally:
         # Remove PID file if it exists
-        if 'PID_FILE' in locals() and PID_FILE.exists():
-            PID_FILE.unlink()
+        os.remove(PID_FILE) 
 
 async def insert_jobs_into_db(supabase, jobs, total_jobs, skipped_links, blacklisted_links):
         try:
