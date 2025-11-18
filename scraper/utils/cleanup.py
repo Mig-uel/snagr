@@ -6,7 +6,9 @@ from supabase import Client, create_client
 
 from ..telegram import send_telegram_message
 
-load_dotenv()
+ENV_MODE = os.getenv("ENV_MODE", "development")
+ENV_FILE = f".env.{ENV_MODE}"
+load_dotenv(ENV_FILE, override=True)
 
 url = os.getenv("SUPABASE_URL")
 key = os.getenv("SUPABASE_KEY")
