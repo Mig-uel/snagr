@@ -1,6 +1,6 @@
 import json
 import math
-from datetime import datetime, time
+from datetime import datetime
 from pathlib import Path
 import asyncio
 from playwright.async_api import async_playwright
@@ -14,16 +14,20 @@ from utils import (
     SOURCE_URL,
     is_valid_job_title,
     normalize_job_link,
-    prevent_multiple_instances
+    prevent_multiple_instances,
 )
 
 # Configure logging
 logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")
 logger = logging.getLogger(__name__)
 
+seen_links = set()
 
 async def main():
     try:
+        # Prevent multiple instances
+        PID_FILE = prevent_multiple_instances()
+
         # Get Supabase client
         supabase = get_supabase()
 
@@ -73,12 +77,14 @@ async def main():
             current_page = 1
             jobs = []
             total_jobs = 0
-            seen_links = set()
             skipped_links = 0
             blacklisted_links = 0
 
             # Outer pagination loop for pages
             while True:
+                # Send current page message
+                send_telegram_message(f"🔵 | <b>Page #{current_page}</b>")
+
                 try:
                     # Find all job cards on the page
                     current_job_cards_elements = page.locator(".job-card-container")
@@ -86,9 +92,6 @@ async def main():
 
                     # Count total jobs on current page
                     total_jobs += len(current_job_cards)
-
-                    # Send job count message
-                    send_telegram_message(f"🔵 | <b>Page #{current_page}</b>\nFound {len(current_job_cards)} jobs")
 
                     # Process each job card
                     for job in current_job_cards:
@@ -161,6 +164,7 @@ async def main():
                     if await next_btn.is_visible() and not await next_btn.is_disabled():
                         await next_btn.click()
                         current_page += 1
+                        await page.wait_for_timeout(2000)  # Wait for 2 seconds before processing next page
                     else:
                         logging.info("Reached Last Page")
                         break
@@ -173,58 +177,36 @@ async def main():
             await browser.close()
 
             # Insert jobs into Supabase
-            try:
-                if jobs:
-                    supabase.table("jobs").insert(jobs).execute()
-                    send_telegram_message(
-                        f"🟢 | <b>Scraper finished!</b>\n\nTotal Jobs Found: {total_jobs}\nJobs Collected: {len(jobs)}\nJobs Skipped: {skipped_links}\nBlacklisted Jobs: {blacklisted_links}"
-                    )
-                else:
-                    send_telegram_message(
-                        f"⚪ | <b>No new jobs to insert.</b>\nTotal Jobs Found: {total_jobs}"
-                    )
-            except Exception as e:
-                    send_telegram_message(
-                        f"⚠️ | <b>Supabase insertion failed:</b>\n<code>{e}</code>"
-                    )
-
+            await insert_jobs_into_db(supabase, jobs, total_jobs, skipped_links, blacklisted_links)
     except Exception as e:
         logging.critical(f"⚠️ | Error initializing scraper: {e}")
         return
-    
+    finally:
+        # Remove PID file if it exists
+        if 'PID_FILE' in locals() and PID_FILE.exists():
+            PID_FILE.unlink()
+
+async def insert_jobs_into_db(supabase, jobs, total_jobs, skipped_links, blacklisted_links):
+        try:
+            if jobs:
+                supabase.table("jobs").insert(jobs).execute()
+                send_telegram_message(
+                    f"🟢 | <b>Scraper finished!</b>\n\nTotal Jobs Found: {total_jobs}\nJobs Collected: {len(jobs)}\nJobs Skipped: {skipped_links}\nBlacklisted Jobs: {blacklisted_links}"
+                )
+                logger.info(f"Inserted {len(jobs)} new jobs into the database.")
+            else:
+                send_telegram_message(
+                    f"⚪ | <b>No new jobs to insert.</b>\nTotal Jobs Found: {total_jobs}"
+                )
+                logger.info("No new jobs to insert.")
+        except Exception as e:
+            logger.error(f"Supabase insertion failed: {e}")
+            send_telegram_message(
+                f"⚠️ | <b>Supabase insertion failed:</b>\n<code>{e}</code>"
+            )
+
 if __name__ == "__main__":
     asyncio.run(main())
-
-
-
-
-
-
-
-
-
-
-# try:
-#     # Create a PID file to prevent multiple instances
-#     PID_FILE = prevent_multiple_instances()
-
-#     PARENT_DIR = Path(__file__).resolve().parent  # parent dir (scraper)
-
-#     supabase = get_supabase()
-#     existing_links = get_existing_job_links()  # fetch existing links from db
-
-#     with async_playwright() as p:
-#         browser = await p.chromium.launch(headless=IS_HEADLESS)
-#         context = browser.new_context()
-
-#         # load saved cookies
-#         with open(Path.joinpath(PARENT_DIR, "linkedin_cookies.json"), "r") as f:
-#             cookies = json.load(f)
-#             context.add_cookies(cookies)
-
-#         page = context.new_page()
-#         page.goto(SOURCE_URL)
-#         page.wait_for_timeout(3000)
 
 
 #         # TODO: work on detecting cookie expiration
@@ -233,43 +215,3 @@ if __name__ == "__main__":
 #         #         "⚠️ <b>LinkedIn session expired. Please upload a new cookie.</b>"
 #         #     )
 #         #     raise Exception("⚠️ <b>Session Expired</b>")
-
-
-#         while True:
-
-#                 # find next button
-#                 next_btn = page.locator('button[aria-label="View next page"]')
-
-#                 if next_btn.is_visible() and not next_btn.is_disabled():
-#                     next_btn.click()
-#                     page.wait_for_timeout(2000)
-#                     page_num += 1
-#                 else:
-#                     print("✅ | Reached last page.")
-#                     break
-#             except Exception as e:
-#                 send_telegram_message(f"⚠️ | <b>Scraper failed:</b>\n<code>{e}</code>")
-#                 context.close()
-#                 browser.close()
-#                 raise
-
-#         context.close()
-#         browser.close()
-
-#         try:
-#             if jobs_list:
-#                 supabase.table("jobs").insert(jobs_list).execute()
-#                 send_telegram_message(
-#                     f"🟢 | <b>Scraper finished!</b>\n\nTotal Jobs Found: {total_jobs}\nJobs Collected: {len(jobs_list)}\nJobs Skipped: {skipped_links}\nBlacklisted Jobs: {blacklisted_links}"
-#                 )
-#             else:
-#                 send_telegram_message(
-#                     f"⚪ | <b>No new jobs to insert.</b>\nTotal Jobs Found: {total_jobs}"
-#                 )
-#         except Exception as e:
-#             send_telegram_message(
-#                 f"⚠️ | <b>Supabase insertion failed:</b>\n<code>{e}</code>"
-#             )
-
-# finally:
-#     os.remove(PID_FILE)
