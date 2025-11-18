@@ -4,6 +4,7 @@ from datetime import datetime
 from pathlib import Path
 import asyncio
 from playwright.async_api import async_playwright
+import logging
 
 from db import get_existing_job_links, get_supabase
 from telegram import send_telegram_message
@@ -15,6 +16,10 @@ from utils import (
     normalize_job_link,
     prevent_multiple_instances
 )
+
+# Configure logging
+logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")
+logger = logging.getLogger(__name__)
 
 
 async def main():
@@ -95,33 +100,33 @@ async def main():
                             # Skip blacklisted companies
                             if company.strip().lower() in BLACKLISTED_COMPANIES:
                                 blacklisted_links += 1
-                                print(f"level=SKIPPED reason=BLACKLISTED company={company}")
+                                logging.info(f"Blacklisted Company: {company}")
                                 continue
                             
                             # Extract job title
                             try:
                                 title = await job.locator("strong").first.inner_text(timeout=2000)
                             except Exception as e:
-                                print(f"⚠️ Title not found or timeout: {e}")
+                                logging.error(f"Title Not Found/Timeout: {e}")
                                 continue
                             
                             # Skip certain job titles/keywords
                             if not is_valid_job_title(title=title):
                                 skipped_links += 1
-                                print("level=SKIPPED reason=TITLE_KEYWORDS_NOT_FOUND title={title}")
+                                logging.info(f"Invalid Title: {title}")
                                 continue
 
                             # Extract LinkedIn URL
                             raw_linkedin_url = await job.locator("a").first.get_attribute("href")
                             parsed_linkedin_url = normalize_job_link(raw_linkedin_url)
 
-                            print(title)
 
                         except Exception as e:
-                            print(f"⚠️ | Error extracting company name: {e}")
+                            logging.error(f"Error Extracting Job Details: {e}")
                             continue
                     break
                 except Exception as e:
+                    logging.critical(f"Scraper Failed: {e}")
                     send_telegram_message(f"⚠️ | <b>Scraper failed:</b>\n<code>{e}</code>")
                     raise
 
@@ -129,7 +134,7 @@ async def main():
             await browser.close()
 
     except Exception as e:
-        print(f"⚠️ | Error initializing scraper: {e}")
+        logging.critical(f"⚠️ | Error initializing scraper: {e}")
         return
 
 asyncio.run(main())
