@@ -4,6 +4,7 @@ venv/
 __pycache__/
 linkedin_cookies.json
 linkedin_cookies.b64
+linkedin_storage.json
 *.sh
 /tmp
 .log
