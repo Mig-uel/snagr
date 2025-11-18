@@ -1,13 +1,9 @@
-from calendar import c
 import json
 import math
-import os
-import time
 from datetime import datetime
 from pathlib import Path
 import asyncio
 from playwright.async_api import async_playwright
-from websocket import send
 
 from db import get_existing_job_links, get_supabase
 from telegram import send_telegram_message
@@ -37,7 +33,7 @@ async def main():
 
         async with async_playwright() as p:
             browser = await p.chromium.launch(headless=IS_HEADLESS)
-            context = await browser.new_context()
+            context = await browser.new_context(viewport={"width": 1400, "height": 3500})
 
             # Add cookies to context
             with open(cookies_file_path, "r") as f:
@@ -66,6 +62,68 @@ async def main():
             send_telegram_message(
                 message=f"<b>✨ | Stats</b>\n\nEstimated Total Results: ~{results_count}\nEstimated Total Pages: ~{total_pages}"
             )
+
+
+            # Pagination variables
+            current_page = 1
+            jobs = []
+            total_jobs = 0
+            seen_links = set()
+            skipped_links = 0
+            blacklisted_links = 0
+
+            # Outer pagination loop for pages
+            while True:
+                send_telegram_message(f"🔵 | <b>Page #{current_page}</b>")
+
+                try:
+                    # Find all job cards on the page
+                    current_job_cards_elements = page.locator(".job-card-container")
+                    current_job_cards = await current_job_cards_elements.all()
+
+                    # Count total jobs on current page
+                    total_jobs += len(current_job_cards)
+
+                    # Process each job card
+                    for job in current_job_cards:
+                        try:
+                            # Extract company name
+                            company = await job.locator(
+                                    ".artdeco-entity-lockup__subtitle"
+                                ).first.inner_text()
+                            
+                            # Skip blacklisted companies
+                            if company.strip().lower() in BLACKLISTED_COMPANIES:
+                                blacklisted_links += 1
+                                print(f"level=SKIPPED reason=BLACKLISTED company={company}")
+                                continue
+                            
+                            # Extract job title
+                            try:
+                                title = await job.locator("strong").first.inner_text(timeout=2000)
+                            except Exception as e:
+                                print(f"⚠️ Title not found or timeout: {e}")
+                                continue
+                            
+                            # Skip certain job titles/keywords
+                            if not is_valid_job_title(title=title):
+                                skipped_links += 1
+                                print("level=SKIPPED reason=TITLE_KEYWORDS_NOT_FOUND title={title}")
+                                continue
+
+                            # Extract LinkedIn URL
+                            raw_linkedin_url = await job.locator("a").first.get_attribute("href")
+                            parsed_linkedin_url = normalize_job_link(raw_linkedin_url)
+
+                            print(title)
+
+                        except Exception as e:
+                            print(f"⚠️ | Error extracting company name: {e}")
+                            continue
+                    break
+                except Exception as e:
+                    send_telegram_message(f"⚠️ | <b>Scraper failed:</b>\n<code>{e}</code>")
+                    raise
 
             await context.close()
             await browser.close()
@@ -110,37 +168,6 @@ asyncio.run(main())
 #         page.goto(SOURCE_URL)
 #         page.wait_for_timeout(3000)
 
-#         # send new batch message
-#         now = datetime.now()
-#         timestamp = now.strftime("%B %d, %Y @ %I:%M %p")
-
-#         send_telegram_message(
-#             message=f"<code>{timestamp}</code>\n<b>⏳ | Running scraper</b>"
-#         )
-
-#         # get total search results
-#         results_count_text = (
-#             (
-#                 page.locator(".jobs-search-results-list__text")
-#                 .nth(1)
-#                 .inner_text()
-#                 .split(" ")
-#             )[0]
-#             .replace(",", "")
-#             .replace("+", "")
-#         )
-#         print(results_count_text)
-#         results_count = int(results_count_text)
-
-#         # jobs per page
-#         jobs_per_page = 25
-
-#         # totals results / jobs per page = total pages (floored)
-#         total_pages = math.ceil(results_count / jobs_per_page)
-
-#         send_telegram_message(
-#             message=f"<b>✨ | Stats</b>\n\nTotal Search Results: {results_count}\nEstimated Total Pages: {total_pages}"
-#         )
 
 #         # TODO: work on detecting cookie expiration
 #         # if "login" in page.url:
@@ -149,43 +176,9 @@ asyncio.run(main())
 #         #     )
 #         #     raise Exception("⚠️ <b>Session Expired</b>")
 
-#         # pagination
-#         page_num = 1
-#         jobs_list = []
-#         total_jobs = 0
-
-#         seen_links = set()
-#         skipped_links = 0
-#         blacklisted_links = 0
 
 #         while True:
 #             send_telegram_message(f"🔵 | <b>Page #{page_num}</b>")
-
-#             try:
-#                 previous_count = 0
-#                 while True:
-#                     job_cards = page.locator(".job-card-container")
-#                     current_count = job_cards.count()
-
-#                     if current_count == previous_count:
-#                         break  # No new jobs loaded
-
-#                     previous_count = current_count
-
-#                     # Scroll the last job into view to trigger lazy load
-#                     job_cards.nth(current_count - 1).scroll_into_view_if_needed()
-
-#                     # Wait until new jobs are added
-#                     page.wait_for_timeout(2000)
-
-#                     page.locator(".jobs-search-pagination").scroll_into_view_if_needed()
-
-#                     # Wait until more jobs load
-#                     page.wait_for_timeout(3000)
-
-#                 job_cards = page.locator(".job-card-container").all()
-
-#                 total_jobs += len(job_cards)
 
 #                 for job in job_cards:
 #                     try:
