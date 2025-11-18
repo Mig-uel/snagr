@@ -79,8 +79,6 @@ async def main():
 
             # Outer pagination loop for pages
             while True:
-                send_telegram_message(f"🔵 | <b>Page #{current_page}</b>")
-
                 try:
                     # Find all job cards on the page
                     current_job_cards_elements = page.locator(".job-card-container")
@@ -88,6 +86,9 @@ async def main():
 
                     # Count total jobs on current page
                     total_jobs += len(current_job_cards)
+
+                    # Send job count message
+                    send_telegram_message(f"🔵 | <b>Page #{current_page}</b>\nFound {len(current_job_cards)} jobs")
 
                     # Process each job card
                     for job in current_job_cards:
@@ -150,12 +151,19 @@ async def main():
 
                             # Throttle requests
                             await asyncio.sleep(.5)
-
-
                         except Exception as e:
                             logging.error(f"Error Extracting Job Details: {e}")
                             continue
-                    break
+
+                    # Find and click the next button
+                    next_btn = page.locator('button[aria-label="View next page"]')
+
+                    if await next_btn.is_visible() and not await next_btn.is_disabled():
+                        await next_btn.click()
+                        current_page += 1
+                    else:
+                        logging.info("Reached Last Page")
+                        break
                 except Exception as e:
                     logging.critical(f"Scraper Failed: {e}")
                     send_telegram_message(f"⚠️ | <b>Scraper failed:</b>\n<code>{e}</code>")
