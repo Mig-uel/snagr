@@ -42,7 +42,11 @@ async def main():
         cookies_file_path = Path.joinpath(parent_dir, "linkedin_cookies.json")
 
         async with async_playwright() as p:
-            browser = await p.chromium.launch(headless=IS_HEADLESS)
+            # Temp fix for Raspberry Pi OS
+            if IS_HEADLESS:
+                browser = await p.chromium.launch(executable_path="/usr/bin/chromium", headless=IS_HEADLESS)
+            else:
+                browser = await p.chromium.launch(headless=IS_HEADLESS)
             context = await browser.new_context(viewport={"width": 1400, "height": 3500})
 
             # Add cookies to context
