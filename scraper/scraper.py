@@ -70,7 +70,7 @@ async def main():
             # Send initial Telegram message
             now = datetime.now().strftime("%B %d, %Y @ %I:%M %p")
             send_telegram_message(
-                message=f"<code>{now}</code>\n<b>ℹ️ | Running scraper</b>"
+                message=f"<code>{now}</code>\n<b>ℹ️ | Running scraper (v2.0)</b>"
             )
 
             # Calculate results stats
