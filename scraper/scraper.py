@@ -29,32 +29,35 @@ async def main():
         # Prevent multiple instances
         PID_FILE = prevent_multiple_instances()
 
-        # Get Supabase client
-        supabase = get_supabase()
+        try:
+            # Get Supabase client
+            supabase = get_supabase()
 
-        # Fetch existing links from database
-        existing_links = get_existing_job_links()
+            # Fetch existing links from database
+            existing_links = get_existing_job_links()
+        except Exception as e:
+            logger.error(f"Error initializing Supabase client: {e}")
+            send_telegram_message(f"❌ | <b>Error initializing Supabase client:</b> {e}")
+            return
 
         # Get parent directory (scraper)
-        parent_dir = Path(__file__).resolve().parent 
+        parent_dir = Path(__file__).resolve().parent
 
-        # Get storage state file path
-        storage_state_file_path = Path.joinpath(parent_dir, "linkedin_storage.json")
-
-        # Check if running on Raspberry Pi
-        IS_RPI = os.uname().machine.startswith("arm") or os.uname().machine.startswith("aarch64")
+        # Get cookies file path
+        cookies_file_path = Path.joinpath(parent_dir, "linkedin_cookies.json")
 
         async with async_playwright() as p:
-            if IS_RPI:
-                logger.info("Running on Raspberry Pi OS")
-                browser = await p.chromium.launch(args=["--no-sandbox", "--disable-gpu"], headless=IS_HEADLESS)
-            else:
-                browser = await p.chromium.launch(headless=IS_HEADLESS)
+            browser = await p.chromium.launch(headless=IS_HEADLESS)
             
             # Create new browser context with specified viewport
             context = await browser.new_context(viewport={"width": 1400, "height": 3500},
-                                                storage_state=str(storage_state_file_path),
-                                                user_agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36")
+            user_agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36")
+            
+            # load cookies
+            with open(cookies_file_path, "r") as f:
+                cookies = json.load(f)
+                await context.add_cookies(cookies)
+
             
             page = await context.new_page()
             await page.goto(SOURCE_URL, wait_until="domcontentloaded")
