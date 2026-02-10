@@ -1,14 +1,12 @@
-import json
 import math
 from datetime import datetime
 import os
-from pathlib import Path
 import asyncio
+from pathlib import Path
 from playwright.async_api import async_playwright
 import logging
 
 from db import get_existing_job_links, get_supabase
-from telegram import send_telegram_message
 from utils import (
     BLACKLISTED_COMPANIES,
     IS_HEADLESS,
@@ -17,6 +15,7 @@ from utils import (
     normalize_job_link,
     prevent_multiple_instances,
 )
+from discord import build_message, send_message
 
 # Configure logging
 logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")
@@ -37,27 +36,16 @@ async def main():
             existing_links = get_existing_job_links()
         except Exception as e:
             logger.error(f"Error initializing Supabase client: {e}")
-            send_telegram_message(f"❌ | <b>Error initializing Supabase client:</b> {e}")
+            send_message(build_message(title="**Error Initializing Supabase**", message=str(e), embed=True))
             return
-
-        # Get parent directory (scraper)
-        parent_dir = Path(__file__).resolve().parent
-
-        # Get cookies file path
-        cookies_file_path = Path.joinpath(parent_dir, "linkedin_cookies.json")
-
-        async with async_playwright() as p:
-            browser = await p.chromium.launch(headless=IS_HEADLESS)
-            
+        
+        async with async_playwright() as p:            
             # Create new browser context with specified viewport
-            context = await browser.new_context(viewport={"width": 1400, "height": 3500},
-            user_agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36")
-            
-            # load cookies
-            with open(cookies_file_path, "r") as f:
-                cookies = json.load(f)
-                await context.add_cookies(cookies)
-
+            context = await p.chromium.launch_persistent_context(
+                user_data_dir=Path.joinpath(Path(__file__).parent, "linkedin_profile"),
+                headless=IS_HEADLESS,
+                viewport={"width": 1400, "height": 3500},
+            )
             
             page = await context.new_page()
             await page.goto(SOURCE_URL, wait_until="domcontentloaded")
@@ -67,21 +55,18 @@ async def main():
             results_text = await results_element.text_content()
             results_count = int(results_text.strip().split(" ")[0].replace(",", "").replace("+", ""))
             
-            # Send initial Telegram message
+            # Format current time for message
             now = datetime.now().strftime("%B %d, %Y @ %I:%M %p")
-            send_telegram_message(
-                message=f"<code>{now}</code>\n<b>ℹ️ | Running scraper (v2.0)</b>"
-            )
 
             # Calculate results stats
             results_per_page = 25
             total_pages = math.ceil(results_count / results_per_page)
 
-            # Send stats message
-            send_telegram_message(
-                message=f"<b>✨ | Stats</b>\n\nEstimated Total Results: ~{results_count}\nEstimated Total Pages: ~{total_pages}"
-            )
-
+            # Send estimated total results and pages message
+            send_message(
+                    build_message(title="**Scraper Running (v3.0)**", 
+                                  message=f"Estimated Total Results: ~{results_count}\nEstimated Total Pages: ~{total_pages}", time=now, embed=True)
+                )
 
             # Pagination variables
             current_page = 1
@@ -93,7 +78,7 @@ async def main():
             # Outer pagination loop for pages
             while True:
                 # Send current page message
-                send_telegram_message(f"🔵 | <b>Page #{current_page}</b>")
+                send_message(build_message(title=f"**Page #{current_page}**", embed=True))
 
                 try:
                     # Find all job cards on the page
@@ -157,9 +142,9 @@ async def main():
                             # Mark link as seen
                             seen_links.add(parsed_linkedin_url)
 
-                            # Send Telegram message for new job
-                            send_telegram_message(
-                                title=title, company=company, href=parsed_linkedin_url
+                            # Send Discord message for new job
+                            send_message(
+                                build_message(title=title, company=company, href=parsed_linkedin_url, embed=True)
                             )
 
                             # Throttle requests
@@ -180,11 +165,10 @@ async def main():
                         break
                 except Exception as e:
                     logging.critical(f"Scraper Failed: {e}")
-                    send_telegram_message(f"⚠️ | <b>Scraper failed:</b>\n<code>{e}</code>")
+                    send_message(build_message(title="**Scraper Failed**", message=str(e), embed=True))
                     raise
 
             await context.close()
-            await browser.close()
 
             # Insert jobs into Supabase
             await insert_jobs_into_db(supabase, jobs, total_jobs, skipped_links, blacklisted_links)
@@ -199,19 +183,19 @@ async def insert_jobs_into_db(supabase, jobs, total_jobs, skipped_links, blackli
         try:
             if jobs:
                 supabase.table("jobs").insert(jobs).execute()
-                send_telegram_message(
-                    f"🟢 | <b>Scraper finished!</b>\n\nTotal Jobs Found: {total_jobs}\nJobs Collected: {len(jobs)}\nJobs Skipped: {skipped_links}\nBlacklisted Jobs: {blacklisted_links}"
+                send_message(
+                    build_message(title="Scraper Done", message=f"Total Jobs Found: {total_jobs}\nJobs Collected: {len(jobs)}\nJobs Skipped: {skipped_links}\nBlacklisted Jobs: {blacklisted_links}", embed=True)
                 )
                 logger.info(f"Inserted {len(jobs)} new jobs into the database.")
             else:
-                send_telegram_message(
-                    f"⚪ | <b>No new jobs to insert.</b>\nTotal Jobs Found: {total_jobs}"
+                send_message(
+                    build_message(title="No New Jobs", message=f"Total Jobs Found: {total_jobs}", embed=True)
                 )
                 logger.info("No new jobs to insert.")
         except Exception as e:
             logger.error(f"Supabase insertion failed: {e}")
-            send_telegram_message(
-                f"⚠️ | <b>Supabase insertion failed:</b>\n<code>{e}</code>"
+            send_message(
+                build_message(title="Supabase Insertion Failed", message=str(e), embed=True)
             )
 
 if __name__ == "__main__":
